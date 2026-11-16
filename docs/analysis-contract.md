@@ -1,7 +1,7 @@
 # Analysis contract and scoring foundation
 
-Milestone 1 implements the foundation. There are no enabled detection rules. The live Gmail
-adapter still calls `/v1/diagnose`; result cards will move to `/v1/analyze` in milestone 3.
+Milestone 2 enables eight deterministic detection rules on the milestone 1 foundation. The live
+Gmail adapter still calls `/v1/diagnose`; result cards will move to `/v1/analyze` in milestone 3.
 
 ## Request and coverage
 
@@ -28,28 +28,39 @@ Unknown fields are rejected. Attachment bytes and caller-generated findings/scor
 are rejected. Clients truncate before sending and identify each truncated field; oversized input is
 rejected rather than silently shortened by schema validation.
 
-The response currently includes:
+The synthetic request produces this response excerpt:
 
 ```json
 {
   "schema_version": "1",
   "request_id": "00000000-0000-4000-8000-000000000002",
-  "policy_version": "heuristic-v1",
-  "normalization_version": "normalize-v1",
-  "analysis_status": "unavailable",
-  "score": null,
-  "verdict": "analysis_unavailable",
-  "findings": [],
-  "scoring": null,
-  "checks_run": []
+  "policy_version": "heuristic-v2",
+  "normalization_version": "normalize-v2",
+  "analysis_status": "partial",
+  "score": 95,
+  "verdict": "high_risk",
+  "scoring": {
+    "requested_points": 110,
+    "category_suppressed_points": 15,
+    "global_suppressed_points": 0,
+    "duplicates_removed": 0
+  },
+  "checks_skipped": []
 }
 ```
 
-The example omits `coverage` for readability. That object lists available, unavailable, and truncated
-fields; bounded issue codes; raw/unique link counts; attachment record count; and explicit limitations.
-Issues identify fields and failure types without echoing rejected content. This milestone returns no
-email evidence or normalized text to the caller. Future findings can contain bounded evidence; the
-Gmail renderer must escape it and keep suspicious URLs inert.
+The excerpt omits `findings`, `checks_run`, and `coverage`. Coverage lists available, unavailable,
+and truncated fields; bounded issue codes; raw/unique link counts; attachment record count; and
+limitations. Issues identify failure types without echoing rejected content. Findings include a
+stable ID, rule ID, category, severity, source field, evidence up to 256 characters, explanation,
+and requested/awarded/category-suppressed/globally-suppressed points. Evidence is untrusted text;
+the Gmail renderer must escape it and keep URLs inert. The backend does not log message content.
+
+`checks_run` identifies evaluated rules, including checks that found nothing. `checks_skipped`
+identifies each unevaluated rule with its missing/invalid fields or unknown-domain reason. All
+eight rules are accounted for exactly once. A check can run on a truncated or partially parsed
+field; its coverage issues still make the overall result partial. No evaluable rules means
+`analysis_status: unavailable`, a null score/accounting, no findings, and explicit skipped checks.
 
 ## Normalization behavior
 
@@ -69,15 +80,20 @@ Gmail renderer must escape it and keep suspicious URLs inert.
    and report issues. Bound each normalized body representation to 16,000 characters after expansion.
    Parse URLs from original text, so text normalization cannot erase their deceptive syntax.
 7. Preserve attachment filename metadata with NFC, normalize MIME-type casing, and never access bytes.
+   Empty names, controls, bidi/format characters, or path separators produce an ambiguity issue.
 
 Limitations always disclose unverified authentication, unvisited URLs, uninspected attachment bytes,
 unrendered HTML, and unseparated quoted content. Recognized ambiguous markup is reported; this is not
-a complete browser grammar validator. No DNS lookup, HTTP request, cache write, or PSL download occurs
+a complete browser grammar validator. Content rules explicitly disclose their English-only matching.
+No DNS lookup, HTTP request, cache write, or PSL download occurs
 during normalization. Tests forbid network access even for the first domain lookup.
 
 ## Provisional scoring policy
 
-These are **policy definitions for future detectors**, not checks that run in milestone 1.
+All eight rules below are enabled. Their exact behavior, prerequisites, and known limitations are
+documented in [Detection rules](detection-rules.md). `heuristic-v2` activates the rules and extends
+display comparison to IP identities; weights and caps remain the provisional milestone 1 values.
+`normalize-v2` adds source-specific text parts and filename ambiguity reporting.
 
 | Rule ID | Requested points | Category cap |
 | --- | ---: | ---: |
@@ -90,10 +106,12 @@ These are **policy definitions for future detectors**, not checks that run in mi
 | `attachment.executable` | 35 | Attachment: 40 |
 | `attachment.double_extension` | 20 | Attachment: 40 |
 
-The scorer accepts at most 512 internal signals. It deduplicates `(rule_id, evidence_key)`, selects a
+The scorer accepts at most 512 internal signals; the current extraction/rule budgets emit at most
+343. It deduplicates `(rule_id, evidence_key)`, selects a
 stable evidence representative, and orders unique signals by descending requested weight then
-rule ID/evidence key. Finding IDs are SHA-256 hashes of the rule/evidence key pair. Detectors must
-choose canonical evidence keys so repeated occurrences do not inflate scores.
+rule ID/evidence key. Finding IDs are SHA-256 hashes of the rule/evidence key pair. Detectors hash
+canonical identity tuples into bounded evidence keys. Content rules use one key per message/rule;
+attachment rules use the normalized filename. Repeated occurrences do not inflate scores.
 
 Apply the category budget first, then the global 100-point budget. Category usage includes points
 subsequently suppressed by the global cap. Every finding satisfies:
@@ -107,7 +125,9 @@ the score is 60 and 20 points are suppressed by the URL cap. Reordering the inpu
 The response contract reserves score bands 0–24 low observed risk, 25–59 suspicious, and 60–100 high
 risk. A partial analysis scoring below 25 is inconclusive. A scored response requires nonempty
 `checks_run`, reconciled findings, and accounting. An unavailable analysis cannot contain a score.
-Missing/truncated/invalid fields cannot accompany a `complete` status. These rules do not make a
+Missing/truncated/invalid fields or skipped checks cannot accompany a `complete` status. Complete
+means the implemented checks ran on the supplied fields, not that every threat was checked or
+authentication was trusted. These rules do not make a
 heuristic score a probability, a malware verdict, or proof that an email is safe.
 
 ## PSL maintenance
@@ -131,7 +151,8 @@ Primary references: [tldextract configuration](https://github.com/john-kurkowski
 ## Review and later interview discussion
 
 The code separates API validation, normalization, rule policy, and orchestration because each has
-a different trust boundary. The scoring tests inject signals; milestone 2 must add benign and
-adversarial email fixtures that exercise actual detectors. Useful questions to revisit afterward:
+a different trust boundary. Scoring tests inject signals to isolate arithmetic; the 20-case message
+corpus and adversarial tests also exercise actual detectors through the core and HTTP route.
+Useful questions to revisit afterward:
 why private suffixes matter, why risk and coverage are separate, why repeated evidence is capped,
 what a browser parser would change, and why an authentication header cannot cancel a dangerous link.

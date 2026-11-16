@@ -61,6 +61,8 @@ class CoverageIssue(StrictModel):
         "ambiguous_html",
         "invalid_text",
         "normalized_text_limit_reached",
+        "ambiguous_filename",
+        "display_url_unresolved",
     ]
 
 
@@ -74,12 +76,12 @@ class Coverage(StrictModel):
     attachment_records: Annotated[int, Field(ge=0, le=20)]
     limitations: list[
         Literal[
-            "detection_rules_not_implemented",
             "authentication_unverified",
             "urls_not_fetched",
             "attachment_bytes_not_inspected",
             "html_not_rendered",
             "quoted_content_not_separated",
+            "english_content_rules",
         ]
     ]
 
@@ -113,6 +115,12 @@ class ScoreAccounting(StrictModel):
     duplicates_removed: Annotated[int, Field(ge=0)]
 
 
+class SkippedCheck(StrictModel):
+    rule_id: Annotated[str, Field(pattern=r"^[a-z][a-z0-9_.]{2,63}$")]
+    reason: Literal["missing_fields", "invalid_fields", "unknown_domain_boundary"]
+    fields: list[AnalysisField]
+
+
 class AnalysisResponse(StrictModel):
     schema_version: Literal["1"] = "1"
     request_id: RequestId
@@ -124,16 +132,21 @@ class AnalysisResponse(StrictModel):
     findings: list[Finding]
     scoring: ScoreAccounting | None
     checks_run: list[str]
+    checks_skipped: list[SkippedCheck] = Field(default_factory=list)
     coverage: Coverage
 
     @model_validator(mode="after")
     def no_false_reassurance(self) -> "AnalysisResponse":
+        skipped_ids = [check.rule_id for check in self.checks_skipped]
+        if len(set(skipped_ids)) != len(skipped_ids) or set(skipped_ids) & set(self.checks_run):
+            raise ValueError("Checks cannot be both run and skipped or skipped twice")
         if self.analysis_status == "unavailable":
             if (
                 self.score is not None
                 or self.verdict != "analysis_unavailable"
                 or self.findings
                 or self.scoring is not None
+                or self.checks_run
             ):
                 raise ValueError("Unavailable analysis cannot carry a score or findings")
             return self
@@ -165,6 +178,7 @@ class AnalysisResponse(StrictModel):
             self.coverage.unavailable_fields
             or self.coverage.truncated_fields
             or self.coverage.issues
+            or self.checks_skipped
         ):
             raise ValueError("Incomplete input cannot be presented as complete")
         return self

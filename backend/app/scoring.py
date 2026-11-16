@@ -1,4 +1,4 @@
-"""Pure provisional scoring policy; detectors will produce signals in milestone 2."""
+"""Pure provisional scoring policy, independent of detectors and transport."""
 
 import hashlib
 import json
@@ -7,7 +7,7 @@ from types import MappingProxyType
 
 from app.analysis_schemas import AnalysisField, Category, Finding, ScoreAccounting, Severity
 
-POLICY_VERSION = "heuristic-v1"
+POLICY_VERSION = "heuristic-v2"
 CATEGORY_CAPS = MappingProxyType({"url": 60, "sender": 20, "content": 35, "attachment": 40})
 
 
@@ -19,14 +19,15 @@ class RuleSpec:
     explanation: str
 
 
-# This is policy metadata, not a registry of implemented detectors.
+# Policy metadata is separate from detector execution in rules.py.
 RULE_SPECS = MappingProxyType(
     {
         "url.display_mismatch": RuleSpec(
             "url",
             "high",
             40,
-            "The displayed URL and destination belong to different registrable domains.",
+            "The displayed URL and destination identify different sites (domain or IP). "
+            "Legitimate tracking redirects can also cause this.",
         ),
         "url.userinfo": RuleSpec(
             "url",
@@ -38,7 +39,11 @@ RULE_SPECS = MappingProxyType(
             "url", "low", 15, "The URL uses an IP address instead of a domain name."
         ),
         "sender.reply_to_mismatch": RuleSpec(
-            "sender", "low", 15, "The sender and Reply-To use different registrable domains."
+            "sender",
+            "low",
+            15,
+            "The sender and Reply-To use different registrable domains. "
+            "Mailing services and support systems can do this legitimately.",
         ),
         "content.credentials_pressure": RuleSpec(
             "content",
@@ -53,7 +58,8 @@ RULE_SPECS = MappingProxyType(
             "attachment",
             "high",
             35,
-            "Attachment filename metadata indicates an executable file type.",
+            "Filename metadata indicates an executable, script, installer, or shortcut type. "
+            "The file contents were not inspected.",
         ),
         "attachment.double_extension": RuleSpec(
             "attachment",

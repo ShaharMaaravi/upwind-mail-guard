@@ -10,7 +10,7 @@ from urllib.parse import urlsplit, urlunsplit
 from app.analysis_schemas import AnalysisField, AnalysisRequest, Coverage, CoverageIssue
 from app.domains import Domain, normalize_domain
 
-NORMALIZATION_VERSION = "normalize-v1"
+NORMALIZATION_VERSION = "normalize-v2"
 MAX_LINKS = 100
 MAX_URL_LENGTH = 2048
 TEXT_URL = re.compile(r"(?:https?://|www\.)[^\s<>\"']+", re.IGNORECASE)
@@ -47,11 +47,18 @@ class Attachment:
 
 
 @dataclass(frozen=True)
+class TextPart:
+    field: AnalysisField
+    text: str
+
+
+@dataclass(frozen=True)
 class NormalizedMessage:
     sender: Address | None
     reply_to: Address | None
     subject: str | None
     body_text: str | None
+    text_parts: tuple[TextPart, ...]
     links: tuple[Link, ...]
     attachments: tuple[Attachment, ...] | None
     coverage: Coverage
@@ -277,11 +284,21 @@ def normalize_message(payload: AnalysisRequest) -> NormalizedMessage:
             for item in payload.attachments
         )
     )
+    for item in attachments or ():
+        if not item.filename.strip() or any(
+            unicodedata.category(c) in {"Cc", "Cf", "Cs"} or c in "/\\" for c in item.filename
+        ):
+            issue("attachments", "ambiguous_filename")
     return NormalizedMessage(
         sender=sender,
         reply_to=reply_to,
         subject=subject,
         body_text=body,
+        text_parts=tuple(
+            TextPart(field, value)
+            for field, value in (("subject", subject), ("plain_text", plain), ("html", html_text))
+            if value is not None
+        ),
         links=tuple(links.values()),
         attachments=attachments,
         coverage=Coverage(

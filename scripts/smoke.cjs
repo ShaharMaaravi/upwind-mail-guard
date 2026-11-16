@@ -72,13 +72,16 @@ async function main() {
     assert.equal(analysis.status, 200);
     const result = await analysis.json();
     assert.equal(result.request_id, JSON.parse(analysisPayload).request_id);
-    assert.equal(result.analysis_status, 'unavailable');
-    assert.equal(result.score, null);
-    assert.deepEqual(result.findings, []);
-    assert.ok(result.coverage.limitations.includes('detection_rules_not_implemented'));
+    assert.equal(result.analysis_status, 'partial');
+    assert.equal(result.score, 95);
+    assert.equal(result.verdict, 'high_risk');
+    assert.equal(result.findings.length, 4);
+    assert.equal(result.findings.reduce((sum, finding) => sum + finding.awarded_points, 0), 95);
+    assert.equal(result.checks_run.length, 8);
+    assert.ok(result.coverage.limitations.includes('authentication_unverified'));
     console.log('PASS: add-on extraction → real local HTTP → backend → validated result card');
     console.log('PASS: real HTTP rejects missing credentials');
-    console.log('PASS: real analysis HTTP contract preserves coverage without inventing a score');
+    console.log('PASS: real analysis HTTP returns expected findings, score, and partial coverage');
     console.log('Google services are mocked. Live Gmail/HTTPS verification is still required.');
   } finally {
     if (backend.pid && backend.exitCode === null) {

@@ -1,0 +1,112 @@
+{
+  "base_request": {
+    "schema_version": "1",
+    "request_id": "00000000-0000-4000-8000-000000000003",
+    "message": {"from_address": "Team <team@example.com>", "reply_to": "", "subject": "Synthetic test", "plain_text": "", "html": "", "authentication_results": ""},
+    "attachments": [],
+    "truncated_fields": []
+  },
+  "cases": [
+    {
+      "id": "benign-team-update", "kind": "benign",
+      "message": {"plain_text": "Our meeting is tomorrow. Notes: https://docs.example.com/notes"},
+      "expected": {"score": 0, "verdict": "low_observed_risk", "status": "complete", "rules": []}
+    },
+    {
+      "id": "benign-marketing-tracking-prose", "kind": "benign",
+      "message": {"html": "<a href=\"https://track.example.net/offer\">View today's offers</a>"},
+      "expected": {"score": 0, "verdict": "low_observed_risk", "status": "complete", "rules": []}
+    },
+    {
+      "id": "benign-subdomains-public-suffix", "kind": "benign",
+      "message": {"from_address": "a@alerts.example.co.uk", "reply_to": "b@help.example.co.uk", "html": "<a href=\"https://login.example.co.uk\">https://accounts.example.co.uk</a>"},
+      "expected": {"score": 0, "verdict": "low_observed_risk", "status": "complete", "rules": []}
+    },
+    {
+      "id": "benign-unicode-equivalent-host", "kind": "benign",
+      "message": {"html": "<a href=\"https://xn--bcher-kva.de\">https://bücher.de</a>"},
+      "expected": {"score": 0, "verdict": "low_observed_risk", "status": "complete", "rules": []}
+    },
+    {
+      "id": "benign-security-guidance", "kind": "benign",
+      "message": {"plain_text": "Urgent reminder: never share your password. Do not pay this invoice today."},
+      "expected": {"score": 0, "verdict": "low_observed_risk", "status": "complete", "rules": []}
+    },
+    {
+      "id": "benign-multiple-extension-document", "kind": "benign",
+      "attachments": [{"filename": "report.final.docx", "content_type": null, "size_bytes": null}, {"filename": "source.tar.gz", "content_type": null, "size_bytes": 0}],
+      "expected": {"score": 0, "verdict": "low_observed_risk", "status": "complete", "rules": []}
+    },
+    {
+      "id": "credential-request-with-pressure", "kind": "suspicious",
+      "message": {"plain_text": "Urgent: enter your password immediately to keep your account open."},
+      "expected": {"score": 25, "verdict": "suspicious", "status": "complete", "rules": ["content.credentials_pressure"]}
+    },
+    {
+      "id": "payment-request-with-pressure", "kind": "suspicious",
+      "message": {"html": "<p>Transfer the funds within 2 hours.</p>"},
+      "expected": {"score": 25, "verdict": "suspicious", "status": "complete", "rules": ["content.payment_pressure"]}
+    },
+    {
+      "id": "deceptive-display-and-subdomain", "kind": "suspicious",
+      "message": {"html": "<a href=\"https://example.com.accounts.example.net/login\">https://example.com</a>"},
+      "expected": {"score": 40, "verdict": "suspicious", "status": "complete", "rules": ["url.display_mismatch"]}
+    },
+    {
+      "id": "userinfo-ip-and-display-capped", "kind": "suspicious",
+      "message": {"html": "<a href=\"http://example.com@192.0.2.1/login\">https://example.com</a>"},
+      "expected": {"score": 60, "verdict": "high_risk", "status": "complete", "rules": ["url.display_mismatch", "url.userinfo", "url.ip_host"]}
+    },
+    {
+      "id": "different-private-tenants", "kind": "suspicious",
+      "message": {"html": "<a href=\"https://bob.github.io\">alice.github.io</a>"},
+      "expected": {"score": 40, "verdict": "suspicious", "status": "complete", "rules": ["url.display_mismatch"]}
+    },
+    {
+      "id": "reply-to-mismatch", "kind": "ambiguous",
+      "message": {"reply_to": "Support <help@example.net>"},
+      "expected": {"score": 15, "verdict": "low_observed_risk", "status": "complete", "rules": ["sender.reply_to_mismatch"]}
+    },
+    {
+      "id": "double-extension-metadata", "kind": "suspicious",
+      "attachments": [{"filename": "invoice.PDF.EXE", "content_type": "application/pdf", "size_bytes": 123}],
+      "expected": {"score": 40, "verdict": "suspicious", "status": "complete", "rules": ["attachment.executable", "attachment.double_extension"]}
+    },
+    {
+      "id": "forged-authentication-cannot-cancel", "kind": "suspicious",
+      "message": {"authentication_results": "mx.google.com; spf=pass; dkim=pass; dmarc=pass", "html": "<a href=\"https://example.net\">example.com</a>"},
+      "expected": {"score": 40, "verdict": "suspicious", "status": "complete", "rules": ["url.display_mismatch"]}
+    },
+    {
+      "id": "unknown-destination-domain", "kind": "incomplete",
+      "message": {"html": "<a href=\"https://example.test\">example.com</a>"},
+      "expected": {"score": 0, "verdict": "inconclusive", "status": "partial", "rules": []}
+    },
+    {
+      "id": "missing-attachment-metadata", "kind": "incomplete",
+      "attachments": null,
+      "expected": {"score": 0, "verdict": "inconclusive", "status": "partial", "rules": []}
+    },
+    {
+      "id": "authentication-only-is-unavailable", "kind": "incomplete",
+      "message": {"from_address": null, "reply_to": null, "subject": null, "plain_text": null, "html": null, "authentication_results": "spf=pass"},
+      "attachments": null,
+      "expected": {"score": null, "verdict": "analysis_unavailable", "status": "unavailable", "rules": []}
+    },
+    {
+      "id": "quoted-phishing-is-not-separated", "kind": "known-false-positive",
+      "message": {"plain_text": "Training example from yesterday's scam: Urgent, send your password immediately."},
+      "expected": {"score": 25, "verdict": "suspicious", "status": "complete", "rules": ["content.credentials_pressure"]}
+    },
+    {
+      "id": "legitimate-tracking-domain-mismatch", "kind": "known-false-positive",
+      "message": {"html": "<a href=\"https://tracking.example.net/click\">https://example.com</a>"},
+      "expected": {"score": 40, "verdict": "suspicious", "status": "complete", "rules": ["url.display_mismatch"]}
+    },
+    {
+      "id": "ordinary-invoice-due-today", "kind": "known-false-positive",
+      "message": {"plain_text": "Please pay your invoice today."},
+      "expected": {"score": 25, "verdict": "suspicious", "status": "complete", "rules": ["content.payment_pressure"]}
+    }
+  ]
+}

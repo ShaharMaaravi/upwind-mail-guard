@@ -95,4 +95,36 @@ are retained. Positive risk remains visible with partial coverage; a low partial
 **Alternative:** a calibrated classifier needs representative labeled data and evaluation; a simple
 unbounded sum lets repeated/correlated evidence dominate. Neither fits the current evidence or scope.
 **Cost:** heuristic thresholds and weights need refinement with benign/adversarial fixtures in
-milestone 2. Score tests currently inject signals and do not measure detector accuracy.
+milestone 2. At milestone 1, tests injected signals and did not exercise detectors. Milestone 2 adds
+actual detector fixtures; neither suite establishes production accuracy.
+
+## 012 — Eight narrow detectors before broader semantic analysis
+
+**Chosen:** pure checks over normalized evidence with fixed prerequisites. Compare whole URL/domain
+labels by site identity (registrable domain or literal IP); ignore arbitrary anchor prose. Compare
+sender/Reply-To registrable domains. Use bounded English request-plus-pressure patterns and simple
+negation suppression. Screen a limited executable/script/installer/shortcut suffix set; only a
+document/archive extension immediately before that suffix triggers double-extension scoring.
+**Alternative:** brand allowlists, reputation lookups, a trained classifier, or an LLM could broaden
+coverage but require new trust boundaries, data, costs, and evaluation. MIME declarations alone do
+not establish attachment type. **Cost:** known false positives and evasion gaps, now made explicit
+in [the rule specification](detection-rules.md) and synthetic fixtures.
+
+## 013 — Record executed and skipped checks separately
+
+**Chosen:** a successful parse can still have missing data. Evaluate usable evidence, return positive
+findings, and report every skipped check with a reason. A low partial score is inconclusive; when no
+check is evaluable, return unavailable with a null score. Keep authentication unverified regardless
+of header strings. **Alternative:** treating missing inputs as empty hides unperformed checks, while
+rejecting every partial message discards useful warnings. **Cost:** response/UI coverage logic is
+more explicit. The next milestone must show it faithfully.
+
+## 014 — Preserve useful evidence while bounding disclosure
+
+**Chosen:** URL findings describe site identities without echoing user-info credentials or query
+strings; content findings return one bounded excerpt with its actual source field. Render controls
+and bidi characters visibly in evidence; shorten long filenames in the middle to retain the suffix.
+Content signals are awarded once per rule/message, attachment signals once per rule/normalized name,
+and URL signals once per rule/canonical URL (plus displayed identity for mismatches).
+**Alternative:** echo entire messages/URLs or count every match. **Cost:** some context and distinct
+same-name attachments are collapsed. The Gmail UI must still escape all evidence as untrusted text.

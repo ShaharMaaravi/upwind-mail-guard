@@ -2,11 +2,11 @@
 
 A Gmail add-on with a separate Python backend, being built for the Upwind Security Analyst assignment.
 
-**Current status: milestone 1 analysis foundation implemented and locally tested.**
-The Gmail diagnostic connection is live-verified. The backend now has an analysis contract,
-offline normalization, and a tested scoring policy, but no enabled detection rules yet.
-`/v1/analyze` explicitly returns an unavailable result with a null score. The Gmail card still
-tests the connection. This is not the final assignment submission.
+**Current status: milestone 2 detection engine implemented and locally tested.**
+The backend now returns real findings, an explainable 0–100 heuristic score, and coverage for eight
+deterministic checks. The Gmail diagnostic connection is live-verified; its card still tests the
+connection. Displaying analysis results inside Gmail is the next milestone. This is not the final
+assignment submission, and the score is not a calibrated probability or a guarantee of safety.
 
 ## What works now
 
@@ -17,6 +17,9 @@ tests the connection. This is not the final assignment submission.
 - Automated backend, add-on, build, and local HTTP integration tests.
 - Strict analysis input/output models, address/HTML/URL normalization, and offline domain boundaries.
 - Pure scoring with stable findings, deduplication, category caps, and exact contribution accounting.
+- Eight checks for URL display mismatches, URL user-info/IP hosts, Reply-To mismatches, credential/
+  payment requests with pressure, and executable/double-extension attachment filenames.
+- Explicit completed/skipped checks; missing or truncated coverage cannot produce a complete result.
 
 The basic flow has also been verified in a personal Gmail account through a temporary HTTPS tunnel:
 authorized selected-message extraction, diagnostic rendering, backend outage, and recovery.
@@ -77,7 +80,9 @@ flowchart LR
     V --> D[Diagnostic field counts]
     D -->|Validated response| C[Gmail result card]
     V -->|Analysis endpoint| N[Offline normalization]
-    N --> U[Coverage and unavailable result]
+    N --> R[Eight deterministic checks]
+    R --> S[Deduplicate and cap score]
+    S --> U[Findings, verdict, and coverage]
 ```
 
 | Location | Responsibility |
@@ -91,8 +96,9 @@ flowchart LR
 | `backend/app/analysis_schemas.py` | Analysis input, findings, score accounting, and coverage contract |
 | `backend/app/normalization.py` | Bounded address, text, HTML, URL, and metadata normalization |
 | `backend/app/domains.py` | IDNA and pinned offline Public Suffix List boundaries |
-| `backend/app/scoring.py` | Pure provisional policy; receives signals from future detectors |
-| `backend/app/analysis.py` | Analysis orchestration; no detectors enabled yet |
+| `backend/app/rules.py` | Eight pure detection checks, evidence, and skip reasons |
+| `backend/app/scoring.py` | Provisional weights, deduplication, caps, and contribution accounting |
+| `backend/app/analysis.py` | Normalize → detect → score; determine coverage and verdict |
 | `backend/app/main.py` | Health, diagnostic, and analysis routes |
 | `scripts/` | Reproducible add-on build and local integration check |
 
@@ -101,12 +107,15 @@ and truncation flags. See [the synthetic request](fixtures/diagnostic-request.js
 The response contains counts only; it never echoes email content. `null` means unavailable,
 while zero characters means available but empty. The diagnostic response has no score field.
 
-`POST /v1/analyze` adds optional bounded attachment metadata and returns normalization coverage.
-It currently returns `analysis_status: "unavailable"`, `score: null`, and no findings or checks run.
-The pure scorer is tested with injected signals; those tests are not evidence of detection accuracy.
+`POST /v1/analyze` adds optional bounded attachment metadata and returns findings, score, completed/
+skipped checks, and coverage. With no evaluable checks it returns an unavailable result and null
+score. A partial result below 25 is inconclusive; positive warnings remain visible with missing data.
 See the [analysis contract and scoring policy](docs/analysis-contract.md) and
-[synthetic request](fixtures/analysis-request.json). Gmail will use this endpoint after the rules
-and result cards are implemented. Both endpoints share authentication, request limits, and rate limits.
+[detection behavior and fixtures](docs/detection-rules.md). The [synthetic request](fixtures/analysis-request.json)
+scores 95: displayed URL mismatch 40, executable filename 35, double extension 5 after its category
+cap, and Reply-To mismatch 15. Authentication is unavailable/unverified, so coverage is partial.
+Gmail will use this endpoint after the result cards are implemented. Both endpoints share
+authentication, request limits, and rate limits.
 
 ## Security boundaries and limitations
 
@@ -127,6 +136,11 @@ and result cards are implemented. Both endpoints share authentication, request l
 - HTML parsing does not reproduce browser rendering, CSS visibility, quoted-message boundaries,
   or every browser URL interpretation. Only HTTP(S) link targets are normalized; at most 100 raw
   candidates are considered, even if they repeat. These limits can omit important evidence.
+- Content rules match narrow English patterns with nearby pressure and simple negation handling.
+  They do not infer intent or understand other languages. Legitimate tracking redirects, quoted
+  scams, and ordinary urgent invoices can trigger warnings; the fixture suite records these cases.
+- Attachment screening uses names only; declared MIME types are not proof of file type. It does
+  not detect malware, inspect archives, or validate contents. Unknown file types receive no finding.
 - Gmail body getters retrieve content before local truncation. The backend limit does not bound
   Google's extraction cost; test large messages live. Attachments are deliberately not downloaded.
 - Apps Script's synchronous URL fetch has no configurable per-call timeout. A platform execution
@@ -142,8 +156,10 @@ strict input types, redacted errors, Unicode, partial extraction, forged authent
 backend redirects/errors, response correlation, escaped card text, and deployment URL validation.
 It also covers PSL wildcard/exception/private boundaries, Unicode domains, deceptive user-info,
 IPv4/IPv6 URLs, inert HTML, bounded repeated links, score reconciliation, and unavailable analysis.
-Milestone 1 passed 167 Python tests, 34 Node tests, lint/format checks, and real local HTTP integration.
-CI targets Python 3.12 / Node 22. Milestone 0 passed remote CI; milestone 1 CI awaits an approved push.
+Milestone 2 passed 243 Python tests, 34 Node tests, lint/format checks, and real local HTTP integration.
+The 20-case detection corpus includes benign, suspicious, incomplete, and known false-positive cases;
+matching their expected behavior is not a production accuracy estimate.
+CI targets Python 3.12 / Node 22. Milestones 0 and 1 passed remote CI; milestone 2 awaits an approved push.
 
 Read [progress](docs/progress.md) for executed checks and outstanding gates,
 [decisions](docs/decisions.md) for tradeoffs, and the [implementation plan](docs/implementation-plan.md)

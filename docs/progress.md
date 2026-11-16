@@ -74,13 +74,50 @@ No new Google upload or live analysis test is claimed by this milestone. The exi
 process was left running; restart the backend to serve the new route outside the integration test.
 
 **Delivery:** the author approved committing and pushing milestone 1 on 2026-11-16.
-This record accompanies that commit. Remote CI is checked after the approved push.
+Commit `c5a7233` is on `main`; [remote CI passed](https://github.com/ShaharMaaravi/upwind-mail-guard/actions/runs/43959963127).
+
+## Milestone 2 — deterministic detection engine
+
+**Implemented:** eight pure detectors for displayed/target URL site mismatch, URL user-info, literal
+IP hosts, Reply-To domain mismatch, English credential/payment requests with nearby pressure,
+executable filenames, and misleading double extensions. `/v1/analyze` now runs the detectors,
+deduplicates signals, computes the score, and returns findings with exact point accounting.
+Policy version is `heuristic-v2`; normalization version is `normalize-v2`.
+
+Each rule is explicitly run or skipped with a reason. Positive findings survive partial input; low
+partial scores are inconclusive. Inputs that support no check return unavailable/null score. Content
+matching retains its actual source field and does not combine unrelated fields. Authentication text
+never adds/subtracts risk. URL findings omit credential/query text, and filename evidence preserves
+extensions while making control/bidi characters visible.
+
+**Automated verification (2026-11-16):** 243 Python tests and 34 Node tests passed, plus Ruff lint /
+format checks and real localhost HTTP integration. No dependencies were added. The 20-case synthetic
+corpus exercises expected findings, exact scores, coverage, and three documented false-positive
+examples. Adversarial tests cover duplicated/malformed links, IPs/IDNs/private suffixes, missing
+inputs, unsupported display URLs, Unicode/obfuscated filenames, truncation, response accounting,
+forged authentication, and no network access. The maximum current 100-link/20-attachment case
+produces 343 findings and reconciles the 100-point cap.
+
+**Example trace:** the existing synthetic request now returns four findings totaling **95**:
+URL mismatch 40, executable filename 35, double extension 5 after the attachment category cap,
+and Reply-To mismatch 15. All eight rules run; missing authentication data makes coverage partial.
+The real localhost HTTP integration verifies this score and the existing add-on diagnostic flow.
+
+**Limits and remaining work:** these authored fixtures are regression tests, not independent
+accuracy evidence. Known tracking/quoted-content/ordinary-invoice false positives and English-only
+content matching are documented in [detection rules](detection-rules.md). Gmail still uses the
+diagnostic endpoint; no new Google upload, email send, or live analysis verification occurred.
+The existing backend process was left running on the earlier code; a new process is used by local
+HTTP tests. Gmail analysis cards, metadata-only attachment feasibility, live edge cases, container
+build, durable hosting, and final demo remain pending.
+
+**Delivery:** the author approved committing and pushing milestone 2 on 2026-11-16.
+This record accompanies the approved commit; remote CI is checked after the push.
 
 ## Upcoming
 
-1. Focused deterministic detection rules with benign/adversarial fixtures.
-2. Complete Gmail score/verdict/evidence experience.
-3. Security checks, submission README, live demo rehearsal.
+1. Complete Gmail score/verdict/evidence experience.
+2. Security checks, submission README, live demo rehearsal.
 
 Detailed explanations and interview practice are deferred until after implementation at the
 author's request. Decisions are recorded as we build so they can be reviewed later.
