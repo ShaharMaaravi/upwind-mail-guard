@@ -3,7 +3,7 @@
 Use a demonstration account and synthetic messages only. Keep the backend and HTTPS tunnel running,
 confirm `/healthz`, and check that the deployed add-on uses the current HTTPS origin and matching
 token. See [installation](gmail-setup.md); a restarted temporary tunnel may require rebuilding and
-uploading the add-on. This walkthrough describes the tested milestone 3 behavior.
+uploading the add-on. This walkthrough describes the tested milestones 3–4 behavior.
 
 1. Open the existing benign synthetic test message. Open Upwind Mail Guard and explain the
    transmission notice before choosing **Analyze this email**. Show **0 / low observed risk**,
@@ -14,9 +14,13 @@ uploading the add-on. This walkthrough describes the tested milestone 3 behavior
    requested 25 but lost 15 to the 35-point content cap. Do not visit the example URL.
 3. Show coverage: one attachment metadata record, all eight checks, attachment contents not inspected,
    authentication unverified, URLs not visited, English-only content patterns, and HTML/quoted-content limits.
-4. Switch back to the benign message. The add-on must present a fresh action before analysis and
+4. In the benign thread, expand the original message header and confirm its analyzed-text preview.
+   Expand the long synthetic reply and analyze it: expect **25 / suspicious / partial**, with plain
+   text and HTML marked truncated. Sending a reply does not necessarily change Gmail's selected
+   message; explicitly select/expand its header.
+5. Switch back to the benign message. The add-on must present a fresh action before analysis and
    return the benign result, not a stale 75.
-5. For the failure demonstration, stop only the identified development backend process. Choose
+6. For the failure demonstration, stop only the identified development backend process. Choose
    **Analyze again** and show **Analysis unavailable**, without a score. Restart the backend with
    the same secret, return to the message list, reopen the message, and analyze again to show recovery.
 
@@ -30,3 +34,7 @@ filename metadata. `npm run test:integration` verifies that example and all 20 d
 against a local backend, with Google services mocked.
 
 Outstanding final rehearsal items are tracked in [live verification](live-verification.md).
+
+The milestone 4 fault tests also observed a backend token mismatch and Google's hard execution
+limit. The latter displays Google's platform error rather than a custom card. After recovery,
+return to the message list and reopen the message; do not treat the previous result as a new scan.

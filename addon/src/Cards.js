@@ -26,6 +26,7 @@ function startCard(hasMessage) {
       'available attachment names/types/sizes to your configured backend. Content is not stored. ' +
       'Links are not visited and attachment contents are not opened.'
     ));
+    section.addWidget(paragraph('In a conversation, expand the message you want to check before analyzing. Each result covers one message.'));
     section.addWidget(CardService.newTextButton().setText('Analyze this email')
       .setOnClickAction(CardService.newAction().setFunctionName('onAnalyzeEmail')));
   } else {
@@ -90,6 +91,10 @@ function analysisCard(result, payload) {
     (result.score === null ? '<br>No score available.' : '<br><b>Risk score: ' + result.score + ' / 100</b>')));
   summary.addWidget(paragraph('Selected subject: ' + escapeCardText(
     payload.message.subject === null ? '(unavailable)' : payload.message.subject.slice(0, 160))));
+  var preview = payload.message.plain_text === null ? null :
+    Array.from(payload.message.plain_text.replace(/\s+/g, ' ').trim());
+  summary.addWidget(paragraph('Analyzed text: ' + escapeCardText(preview === null ? '(unavailable)' :
+    preview.length ? preview.slice(0, 120).join('') + (preview.length > 120 ? '…' : '') : '(empty)')));
   summary.addWidget(paragraph(result.analysis_status === 'partial' ?
     '<b>Partial analysis — some evidence was unavailable or limited.</b>' :
     result.analysis_status === 'complete' ? 'All implemented checks ran on the supplied fields.' :

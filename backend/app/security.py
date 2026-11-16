@@ -2,6 +2,7 @@
 
 import asyncio
 import hmac
+import logging
 import time
 from collections import deque
 
@@ -9,6 +10,8 @@ from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.config import Settings
+
+logger = logging.getLogger(__name__)
 
 
 class RequestGuard:
@@ -22,21 +25,39 @@ class RequestGuard:
             await self.app(scope, receive, send)
             return
 
+        response_started = False
+
         async def secure_send(message: Message) -> None:
+            nonlocal response_started
             if message["type"] == "http.response.start":
+                response_started = True
                 message["headers"] = list(message.get("headers", [])) + [
                     (b"cache-control", b"no-store"),
                     (b"x-content-type-options", b"nosniff"),
                 ]
             await send(message)
 
-        async def reject(status: int, code: str, headers: dict | None = None) -> None:
-            await JSONResponse({"error": code}, status_code=status, headers=headers)(
+        try:
+            await self._guard(scope, receive, secure_send)
+        except Exception:
+            # Exception text/tracebacks can contain email content or validation inputs.
+            # Keep an operational signal without logging the exception, request, or headers.
+            logger.error("request_failed")
+            if response_started:
+                # A response cannot be replaced once sent. Abort with sanitized context.
+                raise RuntimeError("response_failed") from None
+            await JSONResponse({"error": "internal_error"}, status_code=500)(
                 scope, receive, secure_send
             )
 
+    async def _guard(self, scope: Scope, receive: Receive, send: Send) -> None:
+        async def reject(status: int, code: str, headers: dict | None = None) -> None:
+            await JSONResponse({"error": code}, status_code=status, headers=headers)(
+                scope, receive, send
+            )
+
         if scope["path"] not in {"/v1/diagnose", "/v1/analyze"} or scope["method"] != "POST":
-            await self.app(scope, receive, secure_send)
+            await self.app(scope, receive, send)
             return
 
         raw_headers = scope.get("headers", [])
@@ -100,4 +121,4 @@ class RequestGuard:
                 return {"type": "http.request", "body": bytes(body), "more_body": False}
             return await receive()
 
-        await self.app(scope, replay, secure_send)
+        await self.app(scope, replay, send)

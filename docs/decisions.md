@@ -167,3 +167,23 @@ Each analysis reads the current action event, and message-context changes create
 **Cost:** some evidence requires backend inspection; the compact Gmail card avoids hundreds of
 widgets and still explains the full score. Live tests cover literal HTML-like text and switching
 between two distinct messages; selection within one multi-message thread remains unverified.
+
+
+## 018 — Keep unexpected failures out of content-bearing logs
+
+**Chosen:** catch ordinary unexpected HTTP failures inside the request guard, before they escape to
+Uvicorn. Return a fixed 500 payload and log only `request_failed`; do not attach the exception or
+traceback. If a response has started, abort with a sanitized error; do not send a second response.
+Cancellation propagates. Real-process tests inject both analyzer and response-validation failures.
+**Alternative:** a framework-level 500 handler can still re-raise errors to the server, and logging
+full exceptions can expose validation inputs or message text. **Cost:** reduced production debugging
+detail; reproduce with synthetic fixtures locally. Hosting/provider logging remains a separate boundary.
+
+## 019 — Make selected-message context visible
+
+**Chosen:** explain header selection in a Gmail conversation and display the first 120 code points
+of already-extracted plain text, escaped and whitespace-collapsed, in the result card. No new backend
+field or Google permission is needed. Empty and unavailable previews are distinct.
+**Alternative:** read every message in a thread or assume sending a reply selects it. The live test
+showed that Gmail can preserve the original context after a reply is sent. **Cost:** one extra card
+paragraph and explicit selection by the user; the preview makes same-subject results distinguishable.

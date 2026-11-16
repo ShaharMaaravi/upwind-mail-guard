@@ -158,12 +158,51 @@ checkout rehearsal, and final submission packaging. See [live verification](live
 The active development tunnel and backend must stay running for Gmail to work.
 
 **Delivery:** the author approved committing and pushing milestone 3 on 2026-11-17.
-This record accompanies the approved commit; remote CI is checked after the push. Milestone 4 follows.
+Commit `c51da73` is on `main`; [remote CI passed](https://github.com/ShaharMaaravi/upwind-mail-guard/actions/runs/43967672359).
+
+## Milestone 4 — security validation and live edge cases
+
+**Implemented:** an application exception boundary prevents unexpected exception/validation text
+from reaching clients or Uvicorn logs. It returns a generic 500 and fixed `request_failed` log;
+late response failures are sanitized, and cancellation propagates. Added a bounded, escaped
+analyzed-text preview and thread-selection guidance after observing Gmail's message-focus behavior.
+No scoring policy, dependencies, OAuth scopes, or backend payload fields changed.
+
+**Automated verification (2026-11-17):** 248 Python tests and 87 Node tests passed, Ruff lint/format
+passed, and real localhost HTTP integration passed. The new subprocess regression injects analyzer
+exceptions and invalid responses and checks the actual Uvicorn output for content/credential markers.
+A separate 300-case deterministic mutation exercise completed with network access forbidden and no
+crashes or score inconsistencies. `pip-audit==2.10.1` reported no known vulnerabilities for all 21
+pinned runtime packages and nine additional development packages; none were skipped. The check uses
+current PyPI advisory data and is not an exhaustive security guarantee. See [security review](security-review.md).
+
+**Live Gmail verification (2026-11-17):** the author approved one synthetic reply to the existing
+benign thread, starting with urgent credential wording followed by 20,000 neutral test characters.
+The reply scored **25 / suspicious / partial**, with both plain text and HTML marked truncated and
+all eight checks run. Selecting the original message returned **0 / low observed risk / complete**.
+After sending the reply, Gmail initially retained the original action context; explicitly selecting
+its header refreshed the context. The deployed preview and guidance make this distinction visible.
+
+A temporary backend configured with a different generated secret returned **Backend authentication
+failed**, without a score. A separate authenticated 45-second delay produced Google's **maximum
+execution time exceeded** platform error, without a new score; the callback could not render its own
+failure card. Restoring the normal backend, returning to the message list, reopening the thread, and
+analyzing again returned **25** with the correct text preview and truncation notes. The successful
+result was left visible. Temporary fault servers were stopped; the normal backend/tunnel are running.
+Local application/tunnel/fault logs were checked for the real demo token and tested message snippets.
+
+**Review limits:** API/add-on/parse/scoring controls and known gaps are documented in security-review.md.
+The Docker command is installed but its daemon socket was unavailable; no local container build is
+claimed. Hosting, fresh checkout, and final demo packaging remain milestone 5. No private mail or
+screenshots were added to the repository, and no new external service was deployed.
+
+**Delivery:** the author approved committing and pushing milestone 4 on 2026-11-17.
+This record accompanies the approved commit; remote CI is checked after the push.
 
 ## Upcoming
 
-1. Security review and remaining feasible live edge checks.
-2. Submission packaging, deployment decision, fresh-checkout and live demo rehearsal.
+1. Container verification and durable hosting decision.
+2. Final README/setup packaging, fresh-checkout rehearsal, and live demonstration rehearsal.
 
 Detailed explanations and interview practice are deferred until after implementation at the
 author's request. Decisions are recorded as we build so they can be reviewed later.

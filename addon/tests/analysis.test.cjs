@@ -174,6 +174,33 @@ test('partial zero displays inconclusive and missing data, never a safe verdict'
   assert.ok(!display.includes('Low observed risk'));
 });
 
+test('same-subject results identify their own bounded, escaped message preview', () => {
+  const { context, calls } = harness();
+  const p = payload();
+  p.message.plain_text = 'First message <b>literal</b>\n' + '🔒'.repeat(200);
+  context.analysisCard(response(context, p), p);
+  let display = calls.filter(c => c[0] === 'setText').map(c => c[1]);
+  const preview = display.find(t => t.startsWith('Analyzed text:'));
+  assert.ok(preview.includes('&lt;b&gt;literal&lt;/b&gt;'));
+  assert.ok(preview.endsWith('…') && !preview.includes('\n') && !preview.includes('\ufffd'));
+  assert.ok(!preview.includes('🔒'.repeat(121)));
+  calls.length = 0;
+  p.message.plain_text = 'Second message with the same subject';
+  context.analysisCard(response(context, p), p);
+  display = JSON.stringify(calls);
+  assert.ok(display.includes('Analyzed text: Second message with the same subject'));
+  assert.ok(!display.includes('First message'));
+});
+
+for (const [value, label] of [[null, '(unavailable)'], ['', '(empty)']]) {
+  test(`message preview distinguishes ${label} body`, () => {
+    const { context, calls } = harness();
+    const p = payload(); p.message.plain_text = value;
+    context.analysisCard(response(context, p), p);
+    assert.ok(JSON.stringify(calls).includes('Analyzed text: ' + label));
+  });
+}
+
 test('large finding list has a bounded card and accounts for omitted points', () => {
   const { context, calls } = harness();
   const r = response(context);

@@ -2,11 +2,11 @@
 
 A Gmail add-on with a separate Python backend, being built for the Upwind Security Analyst assignment.
 
-**Current status: milestone 3 Gmail analysis implemented and live-verified.**
+**Current status: milestone 4 security review and live edge checks complete.**
 Open an email and choose **Analyze this email** to see an explainable 0–100 heuristic score,
 verdict, evidence, point contributions, and coverage for eight deterministic checks. Benign and
 suspicious synthetic emails, message switching, and backend outage/recovery passed in Gmail.
-Final submission hardening and packaging remain. The score is not a calibrated probability or
+Final submission packaging remains. The score is not a calibrated probability or
 a guarantee of safety.
 
 ## What works now
@@ -16,6 +16,7 @@ a guarantee of safety.
   and metadata for up to 20 named MIME parts; no attachment contents are downloaded.
 - Strictly validated analysis responses, escaped evidence, exact score accounting, and clear
   complete/partial/unavailable states. Missing data never becomes a safe verdict.
+- A bounded analyzed-text preview distinguishes messages with the same subject.
 - Automated backend, add-on, build, and local HTTP integration tests.
 - Strict analysis input/output models, address/HTML/URL normalization, and offline domain boundaries.
 - Pure scoring with stable findings, deduplication, category caps, and exact contribution accounting.
@@ -26,7 +27,9 @@ a guarantee of safety.
 In a personal Gmail account through a temporary HTTPS tunnel, the benign fixture scored **0**
 (low observed risk) and the suspicious fixture **75** (high risk), both with all eight checks run.
 Unavailable metadata produced an explicitly partial result before Gmail API was enabled.
-Broader live edge cases remain listed in the [verification record](docs/live-verification.md).
+A 20,068-character reply scored **25**, with explicit body truncation. Same-thread selection,
+backend authentication failure, Google execution timeout, and recovery were also observed.
+See the [verification record](docs/live-verification.md) and [security review](docs/security-review.md).
 Durable hosting is not configured. The container definition is included but has not been built
 locally because Docker's daemon was unavailable.
 
@@ -150,7 +153,8 @@ the diagnostic route remains available for transport checks.
 - Attachment screening uses names only; declared MIME types are not proof of file type. It does
   not detect malware, inspect archives, or validate contents. Unknown file types receive no finding.
 - Gmail body getters retrieve content before local truncation. The backend limit does not bound
-  Google's extraction cost; test large messages live. Attachments are deliberately not downloaded.
+  Google's extraction cost; a 20,068-character synthetic reply passed live, which does not establish
+  behavior for arbitrarily large mail. Attachments are deliberately not downloaded.
 - Metadata retrieval is bounded to 128 KiB, four MIME nesting levels below the root, and 200 nodes.
   Named MIME parts count as attachment records, including named inline parts. Deeper/extra parts
   and shortened metadata are reported as truncated; failed retrieval remains unavailable.
@@ -159,6 +163,12 @@ the diagnostic route remains available for transport checks.
 - Apps Script's synchronous URL fetch has no configurable per-call timeout. A platform execution
   deadline may terminate the callback before it can render our error card. Backend outages and
   cold starts must therefore be tested in Gmail, not inferred from mocks.
+- Unexpected application failures return a generic 500 and log only a fixed error code. Error
+  text/tracebacks can contain email data, so the boundary suppresses them; real-server fault tests
+  verify this behavior. Debug with synthetic reproductions.
+- Gmail may keep the earlier message selected after a reply is sent. Expand the intended message
+  header and check the analyzed-text preview. After a platform timeout, return to the message list
+  and reopen the message to obtain a fresh action card.
 - Deployment infrastructure can introduce logging; inspect its settings before testing real mail.
   Use synthetic emails for the integration test.
 
@@ -169,12 +179,14 @@ strict input types, redacted errors, Unicode, partial extraction, forged authent
 backend redirects/errors, response correlation, escaped card text, and deployment URL validation.
 It also covers PSL wildcard/exception/private boundaries, Unicode domains, deceptive user-info,
 IPv4/IPv6 URLs, inert HTML, bounded repeated links, score reconciliation, and unavailable analysis.
-Milestone 3 passed 243 Python tests, 84 Node tests, lint/format checks, and real local HTTP integration.
+Milestone 4 passed 248 Python tests, 87 Node tests, lint/format checks, and real local HTTP integration.
+A dated dependency audit found no known vulnerabilities in the 21 runtime and nine development
+packages; this is not a guarantee of vulnerability-free dependencies.
 The HTTP check runs the actual add-on analysis action and validates/renders all 20 corpus responses;
 Google services are mocked there. Separate live Gmail checks are recorded in the verification record.
 The 20-case detection corpus includes benign, suspicious, incomplete, and known false-positive cases;
 matching their expected behavior is not a production accuracy estimate.
-CI targets Python 3.12 / Node 22. Milestones 0–2 passed remote CI; milestone 3 awaits commit approval.
+CI targets Python 3.12 / Node 22. Milestones 0–3 passed remote CI; milestone 4 awaits commit approval.
 
 Read [progress](docs/progress.md) for executed checks and outstanding gates,
 [decisions](docs/decisions.md) for tradeoffs, and the [implementation plan](docs/implementation-plan.md)

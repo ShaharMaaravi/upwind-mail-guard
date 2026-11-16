@@ -79,8 +79,9 @@ Manual upload above avoids this additional tooling for the first test.
 5. Open a synthetic email and click **Analyze this email**.
 
 Expected result: a score/verdict, selected subject, evidence and point contributions, coverage,
-recommended action, and a random analysis reference. A benign message can score zero but must
-not be labeled safe. Missing metadata should show partial coverage and skipped attachment checks.
+recommended action, analyzed-text preview, and a random analysis reference. In a conversation,
+expand the intended message header and check that preview, especially after sending a reply.
+A benign message can score zero but must not be labeled safe. Missing metadata should show partial coverage and skipped attachment checks.
 If metadata stays unavailable, check that Gmail API v1 is enabled and the manifest has the exact
 generated Gmail fetch prefix. Do not broaden OAuth scopes to conceal a configuration problem.
 
