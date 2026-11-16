@@ -53,3 +53,46 @@ Header availability alone does not establish trusted SPF/DKIM/DMARC evidence.
 **Chosen:** unit/transport tests plus actual local HTTP integration, with a separate live Gmail gate.
 **Alternative:** call a mocked Google test end-to-end. That would miss scope restrictions,
 CardService rendering behavior, Google timeouts, and real message-selection semantics.
+
+## 008 — Separate normalization, policy, and orchestration
+
+**Chosen:** plain immutable data records for normalized evidence and signals, strict Pydantic
+contracts at the API boundary, and a pure scoring function. `/v1/analyze` reports unavailable until
+detectors actually execute. Existing diagnostic behavior remains usable during implementation.
+**Alternative:** build rules directly inside HTTP handlers and use zero as a scaffold result.
+**Cost:** a few small modules and an explicit unavailable branch; benefit is independently testable
+policy and no misleading score from unfinished analysis.
+
+## 009 — Offline domain boundaries, including private suffixes
+
+**Chosen:** `idna` UTS #46 normalization followed by `tldextract==5.4.0` using only its packaged PSL,
+verified against a recorded SHA-256. Network suffix sources and disk caching are disabled. Private
+suffixes distinguish unrelated tenants such as `alice.github.io` and `bob.github.io`.
+**Alternative:** last-two-label splitting fails on `co.uk`; a handwritten suffix table becomes stale;
+live updates make scans network-dependent and change results without a policy review.
+**Cost:** a dependency and transitive packages, a frozen snapshot that ages, and an intentional
+maintenance step. Unknown suffixes are coverage gaps, not guessed identities. Update instructions
+are in [the contract](analysis-contract.md).
+
+## 010 — Inert, bounded normalization
+
+**Chosen:** standard-library address and HTML parsers, validated HTTP(S) URLs, 100 raw link
+candidates across HTML then plain text, and at most 20 metadata records. Deduplication preserves
+different anchor labels for the same target. Limits and ambiguous/unsupported input remain visible
+as coverage issues. No DNS, remote images, URL fetches, or attachment bytes are used.
+**Alternative:** browser rendering would match visual/URL behavior more closely but adds attack
+surface, deployment weight, and side-effect control. Parsing raw markup with regex alone loses
+attribute/entity structure. Plain-text URL recognition still uses a bounded regex.
+**Cost:** HTML visibility and quoted content are not reconstructed; a finite budget can miss a
+later malicious link. Internationalized domains are normalized, not automatically called malicious.
+
+## 011 — Auditable provisional score
+
+**Chosen:** fixed versioned weights, one award per rule/evidence pair, category caps, then a global
+100 cap. Stronger findings consume the budget first with deterministic tie-breaking. Every finding
+records requested, awarded, category-suppressed, and globally-suppressed points; zero-point findings
+are retained. Positive risk remains visible with partial coverage; a low partial score is inconclusive.
+**Alternative:** a calibrated classifier needs representative labeled data and evaluation; a simple
+unbounded sum lets repeated/correlated evidence dominate. Neither fits the current evidence or scope.
+**Cost:** heuristic thresholds and weights need refinement with benign/adversarial fixtures in
+milestone 2. Score tests currently inject signals and do not measure detector accuracy.

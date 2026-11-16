@@ -35,7 +35,7 @@ class RequestGuard:
                 scope, receive, secure_send
             )
 
-        if scope["path"] != "/v1/diagnose" or scope["method"] != "POST":
+        if scope["path"] not in {"/v1/diagnose", "/v1/analyze"} or scope["method"] != "POST":
             await self.app(scope, receive, secure_send)
             return
 

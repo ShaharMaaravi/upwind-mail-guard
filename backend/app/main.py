@@ -4,6 +4,8 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.analysis import analyze
+from app.analysis_schemas import AnalysisRequest, AnalysisResponse
 from app.config import Settings
 from app.schemas import DiagnosticRequest, DiagnosticResponse
 from app.security import RequestGuard
@@ -13,7 +15,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.from_environment()
     app = FastAPI(
         title="Upwind Mail Guard",
-        version="0.1.0",
+        version="0.2.0",
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
@@ -40,5 +42,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             },
             truncated_fields=payload.truncated_fields,
         )
+
+    @app.post("/v1/analyze", response_model=AnalysisResponse)
+    def analyze_message(payload: AnalysisRequest) -> AnalysisResponse:
+        return analyze(payload)
 
     return app

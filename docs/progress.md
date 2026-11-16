@@ -35,16 +35,52 @@ The successful result was left visible in Gmail. Backend and tunnel remain runni
 **Remaining validation:** see [live verification](live-verification.md) for untested thread
 selection, large-message, HTML-like subject, Google timeout, and Google logging cases. Attachment
 metadata-only retrieval remains deferred; no attachment bytes were accessed. The Docker daemon
-was unavailable, so no image build was run. Remote CI is triggered by the approved push; its result must be checked separately.
+was unavailable, so no image build was run.
 
-**Delivery:** the author approved committing and pushing milestone 0 on 2026-11-16. This record accompanies the first implementation commit; see Git history for its identifier.
+**Delivery:** the author approved committing and pushing milestone 0 on 2026-11-16.
+Commit `42c662a` is on `main`; [remote CI passed](https://github.com/ShaharMaaravi/upwind-mail-guard/actions/runs/43956286807).
+
+## Milestone 1 — analysis foundation
+
+**Implemented:** strict versioned analysis request/response, optional bounded attachment metadata,
+pure normalization of addresses/text/HTML/URLs, pinned offline Public Suffix List with private
+suffixes, coverage issues, stable finding IDs, per-rule/evidence deduplication, provisional weights,
+category/global caps, and exact accounting of awarded/suppressed points.
+
+`POST /v1/analyze` shares the diagnostic route's request guard. It returns coverage but explicitly
+reports `analysis_status: unavailable`, `score: null`, and `detection_rules_not_implemented`.
+Policy definitions are not enabled detectors. The Gmail script still uses `/v1/diagnose`.
+
+**Automated verification (2026-11-16):** 167 Python tests and 34 Node tests passed; Ruff lint/format
+and dependency consistency checks passed. The real local HTTP integration passed for the add-on
+diagnostic flow and the new analysis endpoint. Local environment: Python 3.12.0 / Node 25.2.1.
+
+New cases cover strict attachment limits/types, malformed/nested addresses, untrusted HTML,
+Unicode/IDNA, PSL wildcard/exception/private suffixes, unknown domains, IPv4/IPv6 and user-info,
+repeated-link budgets, missing versus empty input, text expansion, redacted errors, score caps,
+deduplication, deterministic ordering, coverage-aware verdict constraints, and protection of both
+routes from streamed oversize/slow/unauthorized requests. A cold domain lookup is tested with
+network access forbidden and no disk cache; a changed PSL snapshot fails its integrity check.
+
+**Example trace:** `fixtures/analysis-request.json` contains a displayed URL on `example.com`
+targeting `example.net`, and a synthetic `invoice.pdf.exe` metadata record. Normalization preserves
+the target and display evidence separately and reports one attachment. The API still returns no
+score because detectors have not run. Separately, injected URL signals worth 40 + 25 + 15 points
+produce 60 awarded points and 20 category-suppressed points. This validates arithmetic, not detection.
+
+**Remaining:** detectors/accuracy fixtures (milestone 2), Gmail score/evidence rendering (milestone 3),
+metadata-only Gmail attachment feasibility, live edge cases, durable hosting, and container build.
+No new Google upload or live analysis test is claimed by this milestone. The existing diagnostic
+process was left running; restart the backend to serve the new route outside the integration test.
+
+**Delivery:** the author approved committing and pushing milestone 1 on 2026-11-16.
+This record accompanies that commit. Remote CI is checked after the approved push.
 
 ## Upcoming
 
-1. Strict analysis contract and pure normalization/scoring foundation.
-2. Focused deterministic detection rules with benign/adversarial fixtures.
-3. Complete Gmail score/verdict/evidence experience.
-4. Security checks, submission README, live demo rehearsal.
+1. Focused deterministic detection rules with benign/adversarial fixtures.
+2. Complete Gmail score/verdict/evidence experience.
+3. Security checks, submission README, live demo rehearsal.
 
 Detailed explanations and interview practice are deferred until after implementation at the
 author's request. Decisions are recorded as we build so they can be reviewed later.

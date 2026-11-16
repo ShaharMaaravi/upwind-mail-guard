@@ -3,6 +3,7 @@
  */
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 const net = require('node:net');
 const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
@@ -61,8 +62,23 @@ async function main() {
     context.onTestConnection({ gmail: { messageId: 'synthetic-selected-message', accessToken: 'fake' } });
     assert.ok(JSON.stringify(calls).includes('Backend connected'));
     assert.ok(!JSON.stringify(calls).includes('Analysis unavailable'));
+    const analysisPayload = fs.readFileSync(path.join(root, 'fixtures/analysis-request.json'), 'utf8');
+    const missingAuth = await fetch(origin + '/v1/analyze', { method: 'POST', body: analysisPayload });
+    assert.equal(missingAuth.status, 401);
+    const analysis = await fetch(origin + '/v1/analyze', {
+      method: 'POST', body: analysisPayload,
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    });
+    assert.equal(analysis.status, 200);
+    const result = await analysis.json();
+    assert.equal(result.request_id, JSON.parse(analysisPayload).request_id);
+    assert.equal(result.analysis_status, 'unavailable');
+    assert.equal(result.score, null);
+    assert.deepEqual(result.findings, []);
+    assert.ok(result.coverage.limitations.includes('detection_rules_not_implemented'));
     console.log('PASS: add-on extraction → real local HTTP → backend → validated result card');
     console.log('PASS: real HTTP rejects missing credentials');
+    console.log('PASS: real analysis HTTP contract preserves coverage without inventing a score');
     console.log('Google services are mocked. Live Gmail/HTTPS verification is still required.');
   } finally {
     if (backend.pid && backend.exitCode === null) {

@@ -1,0 +1,14 @@
+{
+  "schema_version": "1",
+  "request_id": "00000000-0000-4000-8000-000000000002",
+  "message": {
+    "from_address": "Synthetic Billing <billing@example.com>",
+    "reply_to": "support@example.net",
+    "subject": "Synthetic analysis fixture — urgent account review",
+    "plain_text": "Please review your account today: https://example.net/review",
+    "html": "<p>Synthetic fixture only.</p><a href=\"https://example.net/review\">https://example.com</a>",
+    "authentication_results": null
+  },
+  "attachments": [{"filename": "invoice.pdf.exe", "content_type": null, "size_bytes": 1024}],
+  "truncated_fields": []
+}

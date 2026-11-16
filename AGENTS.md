@@ -8,9 +8,9 @@ Read README.md first. It contains the assignment requirements and proposed archi
 
 ## Current handoff
 
-Milestone 0 now has a diagnostic backend, Apps Script adapter, local automated tests, and installation instructions. Read docs/progress.md for actual verification and commit status. The original design is preserved in docs/implementation-plan.md. No detector or score is implemented. The core Gmail/HTTPS flow, outage, and recovery have been live-verified; broader live cases remain recorded in docs/live-verification.md.
+Milestone 1 adds the strict analysis contract, pure normalization, offline domain boundaries, and scoring foundation. Read docs/analysis-contract.md and docs/progress.md for the implemented policy, tests, and commit status. No detectors are enabled: the analysis endpoint returns unavailable with a null score. Gmail still uses the milestone 0 diagnostic endpoint. The core Gmail/HTTPS flow, outage, and recovery have been live-verified; broader live cases remain recorded in docs/live-verification.md.
 
-Next step: proceed to the analysis foundation after the approved milestone 0 commit and push. Current-message action scope supports the implemented getters in the live test. Preserve the outstanding thread-selection, large-message, and metadata-only attachment checks in docs/live-verification.md. Do not silently mark a simulated API test as successful live verification.
+Next step after milestone 1 approval: implement focused deterministic detectors and benign/adversarial fixtures, then wire their signals into scoring with honest coverage. Preserve the pinned offline PSL behavior and exact score accounting. Current-message action scope supports the implemented getters in the live test. Preserve the outstanding thread-selection, large-message, and metadata-only attachment checks in docs/live-verification.md. Do not silently mark a simulated API test as successful live verification.
 
 The author is working toward a next-day submission and asked to implement and test each milestone first, with detailed learning afterward. Record decisions without lengthy teaching interruptions. Obtain the author's explicit approval before each milestone commit; do not commit or push automatically.
 

@@ -2,9 +2,11 @@
 
 A Gmail add-on with a separate Python backend, being built for the Upwind Security Analyst assignment.
 
-**Current status: milestone 0 scaffold implemented, with automated tests and a live Gmail connection verified.**
-This version tests the selected-message-to-backend connection. It does **not** detect malicious email,
-calculate a risk score, or give a safety verdict. It is not the final assignment submission.
+**Current status: milestone 1 analysis foundation implemented and locally tested.**
+The Gmail diagnostic connection is live-verified. The backend now has an analysis contract,
+offline normalization, and a tested scoring policy, but no enabled detection rules yet.
+`/v1/analyze` explicitly returns an unavailable result with a null score. The Gmail card still
+tests the connection. This is not the final assignment submission.
 
 ## What works now
 
@@ -13,6 +15,8 @@ calculate a risk score, or give a safety verdict. It is not the final assignment
 - An authenticated diagnostic API returning character counts, truncation, and missing-field information.
 - Clear diagnostic and failure cards; missing data never becomes a safe verdict.
 - Automated backend, add-on, build, and local HTTP integration tests.
+- Strict analysis input/output models, address/HTML/URL normalization, and offline domain boundaries.
+- Pure scoring with stable findings, deduplication, category caps, and exact contribution accounting.
 
 The basic flow has also been verified in a personal Gmail account through a temporary HTTPS tunnel:
 authorized selected-message extraction, diagnostic rendering, backend outage, and recovery.
@@ -72,6 +76,8 @@ flowchart LR
     B --> V[Strict schema validation]
     V --> D[Diagnostic field counts]
     D -->|Validated response| C[Gmail result card]
+    V -->|Analysis endpoint| N[Offline normalization]
+    N --> U[Coverage and unavailable result]
 ```
 
 | Location | Responsibility |
@@ -82,13 +88,25 @@ flowchart LR
 | `addon/src/Handlers.js` | Gmail contextual and action callbacks |
 | `backend/app/security.py` | Authentication, streaming byte limit, upload deadline, rate limit |
 | `backend/app/schemas.py` | Versioned diagnostic request/response contract |
-| `backend/app/main.py` | Public health and authenticated diagnostic routes |
+| `backend/app/analysis_schemas.py` | Analysis input, findings, score accounting, and coverage contract |
+| `backend/app/normalization.py` | Bounded address, text, HTML, URL, and metadata normalization |
+| `backend/app/domains.py` | IDNA and pinned offline Public Suffix List boundaries |
+| `backend/app/scoring.py` | Pure provisional policy; receives signals from future detectors |
+| `backend/app/analysis.py` | Analysis orchestration; no detectors enabled yet |
+| `backend/app/main.py` | Health, diagnostic, and analysis routes |
 | `scripts/` | Reproducible add-on build and local integration check |
 
 `POST /v1/diagnose` takes a schema version, random request reference, bounded message fields,
 and truncation flags. See [the synthetic request](fixtures/diagnostic-request.json).
 The response contains counts only; it never echoes email content. `null` means unavailable,
-while zero characters means available but empty. No score field exists in this milestone.
+while zero characters means available but empty. The diagnostic response has no score field.
+
+`POST /v1/analyze` adds optional bounded attachment metadata and returns normalization coverage.
+It currently returns `analysis_status: "unavailable"`, `score: null`, and no findings or checks run.
+The pure scorer is tested with injected signals; those tests are not evidence of detection accuracy.
+See the [analysis contract and scoring policy](docs/analysis-contract.md) and
+[synthetic request](fixtures/analysis-request.json). Gmail will use this endpoint after the rules
+and result cards are implemented. Both endpoints share authentication, request limits, and rate limits.
 
 ## Security boundaries and limitations
 
@@ -104,6 +122,11 @@ while zero characters means available but empty. No score field exists in this m
   protection at production scale.
 - No database, email-content logging, URL fetching, remote image loading, or attachment inspection.
   Authentication headers are untrusted text; SPF/DKIM/DMARC are not verified.
+- Domain normalization uses the dependency's pinned PSL snapshot, including private suffixes.
+  It does not download data or resolve DNS during a scan. Unknown suffixes remain coverage gaps.
+- HTML parsing does not reproduce browser rendering, CSS visibility, quoted-message boundaries,
+  or every browser URL interpretation. Only HTTP(S) link targets are normalized; at most 100 raw
+  candidates are considered, even if they repeat. These limits can omit important evidence.
 - Gmail body getters retrieve content before local truncation. The backend limit does not bound
   Google's extraction cost; test large messages live. Attachments are deliberately not downloaded.
 - Apps Script's synchronous URL fetch has no configurable per-call timeout. A platform execution
@@ -117,8 +140,10 @@ while zero characters means available but empty. No score field exists in this m
 The suite exercises authentication, malformed/oversized/chunked requests, slow uploads, disconnects,
 strict input types, redacted errors, Unicode, partial extraction, forged authentication claims,
 backend redirects/errors, response correlation, escaped card text, and deployment URL validation.
-CI runs these checks and the local HTTP integration on Python 3.12 / Node 22. Remote CI has not
-run until an approved commit is pushed.
+It also covers PSL wildcard/exception/private boundaries, Unicode domains, deceptive user-info,
+IPv4/IPv6 URLs, inert HTML, bounded repeated links, score reconciliation, and unavailable analysis.
+Milestone 1 passed 167 Python tests, 34 Node tests, lint/format checks, and real local HTTP integration.
+CI targets Python 3.12 / Node 22. Milestone 0 passed remote CI; milestone 1 CI awaits an approved push.
 
 Read [progress](docs/progress.md) for executed checks and outstanding gates,
 [decisions](docs/decisions.md) for tradeoffs, and the [implementation plan](docs/implementation-plan.md)
