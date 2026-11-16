@@ -18,3 +18,15 @@ function onTestConnection(e) {
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().updateCard(card)).build();
 }
+
+function onAnalyzeEmail(e) {
+  var card;
+  try {
+    var payload = extractAnalysis(e);
+    card = analysisCard(callAnalysis(payload), payload);
+  } catch (error) {
+    card = errorCard(error && error.message);
+  }
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().updateCard(card)).build();
+}

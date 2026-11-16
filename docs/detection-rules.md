@@ -92,8 +92,9 @@ is not a universal response byte-limit guarantee; the Gmail client must enforce 
 
 No global suppression is needed. All eight rules ran, four found warning signals, and authentication
 data was unavailable, so the result is **high risk / partial analysis**. The same case passes through
-a real localhost HTTP server in `npm run test:integration`. Gmail still displays diagnostic counts;
-milestone 3 must validate/render the analysis contract and exercise the live Gmail flow.
+a real localhost HTTP server in `npm run test:integration`, including add-on response validation
+and card rendering. Gmail now displays analysis results; its separate live synthetic case scores
+75 as recorded in [live verification](live-verification.md).
 
 Useful interview questions: why a legitimate tracking link can score 40, why a weak mismatch can
 appear in a low-score result, how missing metadata changes the verdict, why the same link is awarded

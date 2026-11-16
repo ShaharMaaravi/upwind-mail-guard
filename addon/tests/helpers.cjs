@@ -18,6 +18,7 @@ function harness(overrides = {}) {
       getUuid: () => '00000000-0000-4000-8000-000000000001',
       newBlob: text => ({ getBytes: () => Buffer.from(text) })
     },
+    ScriptApp: { getOAuthToken: () => 'synthetic-google-oauth-token' },
     GmailApp: {
       setCurrentMessageAccessToken: token => messages.push(['token', token]),
       getMessageById: id => {
@@ -33,7 +34,7 @@ function harness(overrides = {}) {
     UrlFetchApp: { fetch: () => { throw new Error('unexpected_network_call'); } },
     ...overrides
   });
-  for (const filename of ['Extraction.js', 'ApiClient.js', 'Cards.js', 'Handlers.js']) {
+  for (const filename of ['Extraction.js', 'Validation.js', 'ApiClient.js', 'Cards.js', 'Handlers.js']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../src', filename), 'utf8'), context, { filename });
   }
   return { context, messages, calls };

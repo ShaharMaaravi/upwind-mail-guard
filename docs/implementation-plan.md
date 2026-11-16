@@ -2,7 +2,7 @@
 
 A Gmail add-on that explains why an opened email may be suspicious, backed by a small Python scoring service.
 
-**Status: planning only.** The add-on, backend, tests, and live deployment are not implemented yet. This README records the proposed design and implementation sequence; it must be updated to describe verified behavior before submission.
+**Archived implementation proposal (2026-11-16).** This document preserves the original design and milestone sequence. For current implemented behavior, setup, and verification, read the root [README](../README.md) and [progress](progress.md). Proposals below are not completion claims.
 
 ## Assignment requirements
 

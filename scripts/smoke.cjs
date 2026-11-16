@@ -50,6 +50,10 @@ async function main() {
       BACKEND_ORIGIN: origin,
       PropertiesService: { getScriptProperties: () => ({ getProperty: () => token }) },
       UrlFetchApp: { fetch(url, options) {
+        if (url.startsWith('https://gmail.googleapis.com/')) {
+          return { getResponseCode: () => 200,
+            getContentText: () => JSON.stringify({ payload: { mimeType: 'text/plain' } }) };
+        }
         const result = spawnSync(python, ['-c', bridge], {
           input: JSON.stringify({ url, payload: options.payload,
             headers: { ...options.headers, 'Content-Type': options.contentType } }), encoding: 'utf8'
@@ -61,6 +65,11 @@ async function main() {
     });
     context.onTestConnection({ gmail: { messageId: 'synthetic-selected-message', accessToken: 'fake' } });
     assert.ok(JSON.stringify(calls).includes('Backend connected'));
+    assert.ok(!JSON.stringify(calls).includes('Analysis unavailable'));
+    calls.length = 0;
+    context.onAnalyzeEmail({ gmail: { messageId: 'synthetic-selected-message', accessToken: 'fake' } });
+    assert.ok(JSON.stringify(calls).includes('Risk score: 0 / 100'));
+    assert.ok(JSON.stringify(calls).includes('Inconclusive')); // .test sender fixture lacks PSL boundary.
     assert.ok(!JSON.stringify(calls).includes('Analysis unavailable'));
     const analysisPayload = fs.readFileSync(path.join(root, 'fixtures/analysis-request.json'), 'utf8');
     const missingAuth = await fetch(origin + '/v1/analyze', { method: 'POST', body: analysisPayload });
@@ -79,9 +88,28 @@ async function main() {
     assert.equal(result.findings.reduce((sum, finding) => sum + finding.awarded_points, 0), 95);
     assert.equal(result.checks_run.length, 8);
     assert.ok(result.coverage.limitations.includes('authentication_unverified'));
+    context.validateAnalysis(result, JSON.parse(analysisPayload));
+    calls.length = 0;
+    context.analysisCard(result, JSON.parse(analysisPayload));
+    assert.ok(JSON.stringify(calls).includes('Risk score: 95 / 100'));
+    assert.ok(JSON.stringify(calls).includes('High risk'));
+    const corpus = JSON.parse(fs.readFileSync(path.join(root, 'fixtures/detection-cases.json'), 'utf8'));
+    for (const example of corpus.cases) {
+      const request = structuredClone(corpus.base_request);
+      Object.assign(request.message, example.message || {});
+      if ('attachments' in example) request.attachments = example.attachments;
+      const reply = await fetch(origin + '/v1/analyze', { method: 'POST', body: JSON.stringify(request),
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+      assert.equal(reply.status, 200, example.id);
+      const result = await reply.json();
+      context.validateAnalysis(result, request);
+      assert.equal(result.score, example.expected.score, example.id);
+      context.analysisCard(result, request);
+    }
     console.log('PASS: add-on extraction → real local HTTP → backend → validated result card');
     console.log('PASS: real HTTP rejects missing credentials');
     console.log('PASS: real analysis HTTP returns expected findings, score, and partial coverage');
+    console.log('PASS: actual Gmail analysis action and all 20 backend corpus responses validate/render');
     console.log('Google services are mocked. Live Gmail/HTTPS verification is still required.');
   } finally {
     if (backend.pid && backend.exitCode === null) {

@@ -112,12 +112,58 @@ HTTP tests. Gmail analysis cards, metadata-only attachment feasibility, live edg
 build, durable hosting, and final demo remain pending.
 
 **Delivery:** the author approved committing and pushing milestone 2 on 2026-11-16.
-This record accompanies the approved commit; remote CI is checked after the push.
+Commit `d4d62ce` is on `main`; [remote CI passed](https://github.com/ShaharMaaravi/upwind-mail-guard/actions/runs/43962962748).
+
+## Milestone 3 — Gmail analysis product
+
+**Implemented:** selected-message analysis action; metadata-only Gmail API retrieval; strict response
+validation; score/verdict/action cards; escaped evidence and contribution accounting; executed/skipped
+checks and coverage; complete, partial, inconclusive, unavailable, and transport-error states.
+The card shows the strongest eight findings and accounts for omitted findings and points. The
+analysis response limit is 512 KiB; the metadata response limit is 128 KiB. No package dependencies or
+broader OAuth scopes were added. Gmail API v1 enablement is declared in the manifest.
+
+**Automated verification (2026-11-16–17):** 243 Python tests and 84 Node tests passed, plus Ruff
+lint/format and real localhost HTTP integration. New tests cover metadata masks and Google-only
+tokens, malformed/deep/oversized MIME trees, UTF-8 byte limits, 29 response-tampering cases,
+partial/unavailable coverage, escaped markup, hidden-finding accounting, errors, and expired access.
+The real HTTP check runs the actual add-on action and validates/renders all 20 detection-corpus
+responses. Google APIs/CardService are mocked in that check. Local Python 3.12.0 / Node 25.2.1;
+CI remains Python 3.12 / Node 22. No new remote CI result is claimed before commit/push approval.
+
+**Live Gmail verification (2026-11-16–17):** uploaded/saved the analysis code and manifest and
+restarted the local backend on milestone 2. The author approved one additional synthetic self-email
+with a harmless text attachment and later approved enabling Gmail API under Google's terms.
+Initially unavailable metadata produced an honest partial result with six checks. API enablement
+resolved it without broader scopes: benign **0 / low observed risk**, suspicious **75 / high risk**,
+both with all eight implemented checks and complete supplied-field coverage. The suspicious email
+reported one metadata record; its literal HTML-like subject and evidence rendered as text.
+
+Switching between the two messages reset to a fresh action card. Returning to the message list
+showed the homepage. Stopping the backend replaced the prior result with **Analysis unavailable**
+and no score; restoring it and analyzing again returned **75**. The successful result was left
+visible. An expanded Google execution showed no logs available (Google notes logs may be delayed).
+Backend/tunnel logs were checked for the demo token and synthetic message snippets without exposing
+them. No real email content, Gmail token, message ID, private screenshot, or secret is committed.
+
+**Example trace:** the live suspicious email requested credentials and payment under pressure and
+contained a URL with user-info and an IP host. Awards were 25 + 10 content points (15 suppressed
+by the content cap), plus 25 + 15 URL points = **75**. Repeated plain/HTML signals were deduplicated.
+The harmless `.txt` attachment caused no finding; successful metadata retrieval allowed both
+attachment checks to run.
+
+**Remaining:** within-thread message selection, long-message timing/truncation, Google's hard
+execution deadline, live wrong-token behavior, container build, durable hosting decision, fresh
+checkout rehearsal, and final submission packaging. See [live verification](live-verification.md).
+The active development tunnel and backend must stay running for Gmail to work.
+
+**Delivery:** the author approved committing and pushing milestone 3 on 2026-11-17.
+This record accompanies the approved commit; remote CI is checked after the push. Milestone 4 follows.
 
 ## Upcoming
 
-1. Complete Gmail score/verdict/evidence experience.
-2. Security checks, submission README, live demo rehearsal.
+1. Security review and remaining feasible live edge checks.
+2. Submission packaging, deployment decision, fresh-checkout and live demo rehearsal.
 
 Detailed explanations and interview practice are deferred until after implementation at the
 author's request. Decisions are recorded as we build so they can be reviewed later.

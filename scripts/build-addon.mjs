@@ -17,7 +17,7 @@ try {
   process.exit(1);
 }
 const manifest = JSON.parse(await readFile(new URL('addon/appsscript.template.json', root), 'utf8'));
-manifest.urlFetchWhitelist = [origin + '/'];
+manifest.urlFetchWhitelist = [origin + '/', 'https://gmail.googleapis.com/gmail/v1/users/me/messages/'];
 await mkdir(new URL('addon/build/', root), { recursive: true });
 await writeFile(new URL('addon/build/appsscript.json', root), JSON.stringify(manifest, null, 2) + '\n');
 await writeFile(new URL('addon/build/Deployment.js', root), 'var BACKEND_ORIGIN = ' + JSON.stringify(origin) + ';\n');

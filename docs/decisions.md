@@ -128,3 +128,42 @@ Content signals are awarded once per rule/message, attachment signals once per r
 and URL signals once per rule/canonical URL (plus displayed identity for mismatches).
 **Alternative:** echo entire messages/URLs or count every match. **Cost:** some context and distinct
 same-name attachments are collapsed. The Gmail UI must still escape all evidence as untrusted text.
+
+
+## 015 — Read attachment metadata without downloading content
+
+**Chosen:** request only MIME names/types/sizes from the selected-message Gmail API, using an
+explicit partial-response mask. Google tokens remain on Google requests. Enable Gmail API v1
+through the manifest dependency; retain the existing current-message action scope. Bound the
+response to 128 KiB, MIME depth to four below root, nodes to 200, and named parts to 20. A failed
+request gives unavailable metadata; reaching a limit gives explicit truncation.
+**Alternative:** GmailApp attachment getters can retrieve blobs, while granting mailbox-wide
+access expands permissions beyond this product. Omitting attachments entirely loses two checks.
+**Cost:** one additional Google request and API enablement, possible partial coverage for complex
+MIME trees, and named inline parts treated as attachment records. In the live test, enabling Gmail
+API resolved unavailable metadata without requesting broader scopes.
+References: [message API](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages/get),
+[partial responses](https://developers.google.com/workspace/gmail/api/guides/performance), and
+[current-message API tokens](https://developers.google.com/workspace/add-ons/guides/alternate-runtimes).
+
+## 016 — Validate the analysis response before presenting a verdict
+
+**Chosen:** validate exact fields, policy/normalizer versions, request correlation, rule identities,
+input-derived coverage, verdict thresholds, point reconciliation, and category limits in the add-on.
+Cap the UTF-8 response at 512 KiB and fail with an unavailable card for malformed/inconsistent data.
+The backend remains the scoring authority; the client checks consistency rather than running rules.
+**Alternative:** trust a successful HTTP status or render arbitrary response objects. A generated
+schema client could reduce duplication but needs a build dependency and still needs semantic checks.
+**Cost:** a small explicit JavaScript validator that must change alongside the versioned contract.
+The HTTP integration exercises all 20 corpus responses through that validator to detect drift.
+
+## 017 — Bound visible evidence while preserving score accounting
+
+**Chosen:** display the eight strongest findings with evidence, requested/awarded points, and cap
+suppression. Report omitted finding count and awarded points, plus complete aggregate arithmetic.
+Escape every untrusted subject/evidence/explanation string; do not create link actions from evidence.
+Each analysis reads the current action event, and message-context changes create a fresh start card.
+**Alternative:** render every finding, paginate through persistent state, or hide capped findings.
+**Cost:** some evidence requires backend inspection; the compact Gmail card avoids hundreds of
+widgets and still explains the full score. Live tests cover literal HTML-like text and switching
+between two distinct messages; selection within one multi-message thread remains unverified.

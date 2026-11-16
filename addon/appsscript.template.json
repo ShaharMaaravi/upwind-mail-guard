@@ -2,6 +2,9 @@
   "timeZone": "Etc/UTC",
   "runtimeVersion": "V8",
   "exceptionLogging": "NONE",
+  "dependencies": {
+    "enabledAdvancedServices": [{ "userSymbol": "Gmail", "version": "v1", "serviceId": "gmail" }]
+  },
   "oauthScopes": [
     "https://www.googleapis.com/auth/gmail.addons.execute",
     "https://www.googleapis.com/auth/gmail.addons.current.message.action",

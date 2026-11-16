@@ -1,12 +1,24 @@
 /** The build pins the HTTPS origin in Deployment.js and the manifest allowlist. */
 function callDiagnostic(payload) {
+  var result = backendRequest('/v1/diagnose', payload, 8192);
+  validateDiagnostic(result, payload);
+  return result;
+}
+
+function callAnalysis(payload) {
+  var result = backendRequest('/v1/analyze', payload, 512 * 1024);
+  validateAnalysis(result, payload);
+  return result;
+}
+
+function backendRequest(path, payload, responseLimit) {
   var token = PropertiesService.getScriptProperties().getProperty('MAIL_GUARD_API_TOKEN');
   if (!token || !/^[A-Za-z0-9_-]{43,128}$/.test(token)) throw new Error('configuration_error');
   var json = JSON.stringify(payload);
   if (Utilities.newBlob(json).getBytes().length > 256 * 1024) throw new Error('request_too_large');
   var response;
   try {
-    response = UrlFetchApp.fetch(BACKEND_ORIGIN + '/v1/diagnose', {
+    response = UrlFetchApp.fetch(BACKEND_ORIGIN + path, {
       method: 'post', contentType: 'application/json',
       headers: { Authorization: 'Bearer ' + token }, payload: json,
       followRedirects: false, validateHttpsCertificates: true, muteHttpExceptions: true
@@ -19,10 +31,11 @@ function callDiagnostic(payload) {
   if (status === 429) throw new Error('rate_limited');
   if (status !== 200) throw new Error('backend_unavailable');
   var raw = response.getContentText();
-  if (raw.length > 8192) throw new Error('invalid_response');
+  if (raw.length > responseLimit || Utilities.newBlob(raw).getBytes().length > responseLimit) {
+    throw new Error('invalid_response');
+  }
   var result;
   try { result = JSON.parse(raw); } catch (_) { throw new Error('invalid_response'); }
-  validateDiagnostic(result, payload);
   return result;
 }
 

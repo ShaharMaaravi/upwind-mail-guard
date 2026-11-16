@@ -16,10 +16,13 @@ test('build pins a matching HTTPS origin in source and manifest; excludes tests 
     });
     assert.equal(run.status, 0, run.stderr);
     const manifest = JSON.parse(readFileSync(path.join(root, 'addon/build/appsscript.json')));
-    assert.deepEqual(manifest.urlFetchWhitelist, ['https://mail-guard.demo-host.dev/']);
+    assert.deepEqual(manifest.urlFetchWhitelist, ['https://mail-guard.demo-host.dev/',
+      'https://gmail.googleapis.com/gmail/v1/users/me/messages/']);
     assert.ok(manifest.oauthScopes.includes('https://www.googleapis.com/auth/gmail.addons.current.message.action'));
     assert.ok(!manifest.oauthScopes.includes('https://mail.google.com'));
     assert.equal(manifest.exceptionLogging, 'NONE');
+    assert.deepEqual(manifest.dependencies.enabledAdvancedServices,
+      [{ userSymbol: 'Gmail', version: 'v1', serviceId: 'gmail' }]);
     assert.equal(readFileSync(path.join(root, 'addon/build/Deployment.js'), 'utf8'),
       'var BACKEND_ORIGIN = "https://mail-guard.demo-host.dev";\n');
   } finally { rmSync(root, { recursive: true, force: true }); }

@@ -156,3 +156,19 @@ corpus and adversarial tests also exercise actual detectors through the core and
 Useful questions to revisit afterward:
 why private suffixes matter, why risk and coverage are separate, why repeated evidence is capped,
 what a browser parser would change, and why an authentication header cannot cancel a dangerous link.
+
+
+## Gmail response boundary
+
+`addon/src/Validation.js` checks exact response fields and known versions, current request reference,
+input-derived coverage, all eight rule identities, finding/count limits, verdict consistency, and
+reconciled per-finding/aggregate points before any analysis card is built. The client rejects JSON
+responses larger than 512 KiB (UTF-8), mismatched versions, or inconsistent results with an
+unavailable error card. The renderer shows eight strongest findings plus omitted counts/points and
+full score totals. Strict version checking requires coordinated backend/add-on updates.
+
+Attachment metadata is requested only from Google's selected-message endpoint, using OAuth and
+current-message tokens in Google request headers. Its field mask excludes body data and download
+IDs. Metadata retrieval failures become `attachments: null`; a successful empty result is `[]`.
+Depth/count/field limits set the attachments truncation flag. Neither Google token nor message ID
+is part of the backend payload.

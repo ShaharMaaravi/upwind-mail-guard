@@ -2,18 +2,20 @@
 
 A Gmail add-on with a separate Python backend, being built for the Upwind Security Analyst assignment.
 
-**Current status: milestone 2 detection engine implemented and locally tested.**
-The backend now returns real findings, an explainable 0–100 heuristic score, and coverage for eight
-deterministic checks. The Gmail diagnostic connection is live-verified; its card still tests the
-connection. Displaying analysis results inside Gmail is the next milestone. This is not the final
-assignment submission, and the score is not a calibrated probability or a guarantee of safety.
+**Current status: milestone 3 Gmail analysis implemented and live-verified.**
+Open an email and choose **Analyze this email** to see an explainable 0–100 heuristic score,
+verdict, evidence, point contributions, and coverage for eight deterministic checks. Benign and
+suspicious synthetic emails, message switching, and backend outage/recovery passed in Gmail.
+Final submission hardening and packaging remain. The score is not a calibrated probability or
+a guarantee of safety.
 
 ## What works now
 
-- A contextual Gmail card with an explicit **Test connection** action.
-- Bounded extraction of sender, Reply-To, subject, plain text, HTML, and an authentication header.
-- An authenticated diagnostic API returning character counts, truncation, and missing-field information.
-- Clear diagnostic and failure cards; missing data never becomes a safe verdict.
+- A contextual Gmail card with an explicit **Analyze this email** action and transmission notice.
+- Bounded extraction of sender, Reply-To, subject, plain text, HTML, an authentication header,
+  and metadata for up to 20 named MIME parts; no attachment contents are downloaded.
+- Strictly validated analysis responses, escaped evidence, exact score accounting, and clear
+  complete/partial/unavailable states. Missing data never becomes a safe verdict.
 - Automated backend, add-on, build, and local HTTP integration tests.
 - Strict analysis input/output models, address/HTML/URL normalization, and offline domain boundaries.
 - Pure scoring with stable findings, deduplication, category caps, and exact contribution accounting.
@@ -21,8 +23,9 @@ assignment submission, and the score is not a calibrated probability or a guaran
   payment requests with pressure, and executable/double-extension attachment filenames.
 - Explicit completed/skipped checks; missing or truncated coverage cannot produce a complete result.
 
-The basic flow has also been verified in a personal Gmail account through a temporary HTTPS tunnel:
-authorized selected-message extraction, diagnostic rendering, backend outage, and recovery.
+In a personal Gmail account through a temporary HTTPS tunnel, the benign fixture scored **0**
+(low observed risk) and the suspicious fixture **75** (high risk), both with all eight checks run.
+Unavailable metadata produced an explicitly partial result before Gmail API was enabled.
 Broader live edge cases remain listed in the [verification record](docs/live-verification.md).
 Durable hosting is not configured. The container definition is included but has not been built
 locally because Docker's daemon was unavailable.
@@ -75,21 +78,24 @@ For Google setup, an HTTPS backend, and the exact files to upload, follow
 ```mermaid
 flowchart LR
     G[Selected Gmail message] --> A[Apps Script adapter]
+    A -->|Current-message tokens, metadata fields only| M[Gmail API]
+    M --> A
     A -->|Authenticated HTTPS JSON| B[Request guard]
     B --> V[Strict schema validation]
-    V --> D[Diagnostic field counts]
-    D -->|Validated response| C[Gmail result card]
-    V -->|Analysis endpoint| N[Offline normalization]
+    V --> N[Offline normalization]
     N --> R[Eight deterministic checks]
     R --> S[Deduplicate and cap score]
     S --> U[Findings, verdict, and coverage]
+    U --> X[Add-on response validation]
+    X --> C[Gmail result card]
 ```
 
 | Location | Responsibility |
 | --- | --- |
-| `addon/src/Extraction.js` | Selected-message access, field limits, missing/truncated data |
-| `addon/src/ApiClient.js` | Authenticated request, redirects disabled, response validation |
-| `addon/src/Cards.js` | Diagnostic, consent, and failure presentation |
+| `addon/src/Extraction.js` | Selected-message access, metadata-only MIME request, field limits |
+| `addon/src/ApiClient.js` | Authenticated request, byte limits, redirects disabled |
+| `addon/src/Validation.js` | Response version/correlation, coverage, verdict, and score reconciliation |
+| `addon/src/Cards.js` | Analysis, escaped evidence, coverage, transmission notice, and errors |
 | `addon/src/Handlers.js` | Gmail contextual and action callbacks |
 | `backend/app/security.py` | Authentication, streaming byte limit, upload deadline, rate limit |
 | `backend/app/schemas.py` | Versioned diagnostic request/response contract |
@@ -114,16 +120,18 @@ See the [analysis contract and scoring policy](docs/analysis-contract.md) and
 [detection behavior and fixtures](docs/detection-rules.md). The [synthetic request](fixtures/analysis-request.json)
 scores 95: displayed URL mismatch 40, executable filename 35, double extension 5 after its category
 cap, and Reply-To mismatch 15. Authentication is unavailable/unverified, so coverage is partial.
-Gmail will use this endpoint after the result cards are implemented. Both endpoints share
-authentication, request limits, and rate limits.
+Gmail uses this endpoint. Both endpoints share authentication, request limits, and rate limits;
+the diagnostic route remains available for transport checks.
 
 ## Security boundaries and limitations
 
-- Gmail event tokens and message IDs stay inside Apps Script. No mailbox-wide scope is requested.
+- Gmail tokens and message IDs are used only between Apps Script and Google; they are never sent
+  to the backend. No mailbox-wide scope is requested.
 - The backend token lives in Script Properties and the backend environment. Script editors can
   access it; this is single-demo authentication, not multi-user authorization.
-- The build pins the same HTTPS origin in the fetch client and manifest allowlist. Redirects
-  are disabled and TLS verification stays enabled.
+- The build pins the same HTTPS backend origin in the client and manifest allowlist; the only
+  additional fetch prefix is Gmail's selected-message API. Redirects are disabled and TLS
+  verification stays enabled. Gmail API v1 must be enabled in the Apps Script project.
 - The API authenticates before reading JSON, limits the request to 256 KiB even without a
   trustworthy Content-Length, and allows five seconds to receive a body.
 - The single-instance limiter allows 30 authenticated requests/minute. It resets on restart and
@@ -143,6 +151,11 @@ authentication, request limits, and rate limits.
   not detect malware, inspect archives, or validate contents. Unknown file types receive no finding.
 - Gmail body getters retrieve content before local truncation. The backend limit does not bound
   Google's extraction cost; test large messages live. Attachments are deliberately not downloaded.
+- Metadata retrieval is bounded to 128 KiB, four MIME nesting levels below the root, and 200 nodes.
+  Named MIME parts count as attachment records, including named inline parts. Deeper/extra parts
+  and shortened metadata are reported as truncated; failed retrieval remains unavailable.
+- The client rejects analysis responses above 512 KiB or with inconsistent accounting/coverage.
+  The card shows the strongest eight findings, with omitted counts/points and full score totals.
 - Apps Script's synchronous URL fetch has no configurable per-call timeout. A platform execution
   deadline may terminate the callback before it can render our error card. Backend outages and
   cold starts must therefore be tested in Gmail, not inferred from mocks.
@@ -156,11 +169,13 @@ strict input types, redacted errors, Unicode, partial extraction, forged authent
 backend redirects/errors, response correlation, escaped card text, and deployment URL validation.
 It also covers PSL wildcard/exception/private boundaries, Unicode domains, deceptive user-info,
 IPv4/IPv6 URLs, inert HTML, bounded repeated links, score reconciliation, and unavailable analysis.
-Milestone 2 passed 243 Python tests, 34 Node tests, lint/format checks, and real local HTTP integration.
+Milestone 3 passed 243 Python tests, 84 Node tests, lint/format checks, and real local HTTP integration.
+The HTTP check runs the actual add-on analysis action and validates/renders all 20 corpus responses;
+Google services are mocked there. Separate live Gmail checks are recorded in the verification record.
 The 20-case detection corpus includes benign, suspicious, incomplete, and known false-positive cases;
 matching their expected behavior is not a production accuracy estimate.
-CI targets Python 3.12 / Node 22. Milestones 0 and 1 passed remote CI; milestone 2 awaits an approved push.
+CI targets Python 3.12 / Node 22. Milestones 0–2 passed remote CI; milestone 3 awaits commit approval.
 
 Read [progress](docs/progress.md) for executed checks and outstanding gates,
 [decisions](docs/decisions.md) for tradeoffs, and the [implementation plan](docs/implementation-plan.md)
-for upcoming detection and scoring milestones. Each milestone is committed only with the author's approval.
+for the original sequence. Each milestone is committed only with the author's approval.

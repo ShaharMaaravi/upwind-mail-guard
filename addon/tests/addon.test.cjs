@@ -139,7 +139,7 @@ test('opening a different message resets to a fresh start card without reading m
   context.onGmailMessage(event);
   context.onGmailMessage({ gmail: { messageId: 'different-message' } });
   assert.equal(messages.length, 0);
-  assert.equal(calls.filter(c => c[0] === 'setText' && c[1] === 'Test connection').length, 2);
+  assert.equal(calls.filter(c => c[0] === 'setText' && c[1] === 'Analyze this email').length, 2);
   assert.ok(!JSON.stringify(calls).includes('Backend connected'));
 });
 
