@@ -2,7 +2,7 @@
   "name": "upwind-mail-guard",
   "version": "0.1.0",
   "private": true,
-  "description": "Gmail add-on integration scaffold and tests",
+  "description": "Explainable Gmail risk analysis with a separate Python backend",
   "engines": { "node": ">=22" },
   "scripts": {
     "test": "node --test addon/tests/*.test.cjs",

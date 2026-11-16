@@ -1,14 +1,14 @@
 /** Fail closed on inconsistent findings, coverage, policy versions, or score accounting. */
 var ANALYSIS_FIELDS = Object.keys(FIELD_LIMITS).concat(['attachments']);
 var RULE_LABELS = Object.freeze({
-  'url.display_mismatch': 'Displayed URL differs from destination',
-  'url.userinfo': 'URL contains user-info before @',
-  'url.ip_host': 'URL uses an IP address',
-  'sender.reply_to_mismatch': 'Reply-To differs from sender',
-  'content.credentials_pressure': 'Credential request with pressure',
-  'content.payment_pressure': 'Payment request with pressure',
-  'attachment.executable': 'Potentially executable filename',
-  'attachment.double_extension': 'Misleading double extension'
+  'url.display_mismatch': 'Link destination differs',
+  'url.userinfo': 'Misleading link address',
+  'url.ip_host': 'Link uses an IP address',
+  'sender.reply_to_mismatch': 'Replies go to another domain',
+  'content.credentials_pressure': 'Urgent credential request',
+  'content.payment_pressure': 'Payment request with urgency',
+  'attachment.executable': 'Executable file name',
+  'attachment.double_extension': 'Disguised file extension'
 });
 var COVERAGE_ISSUES = Object.freeze({
   invalid_address: 'Address could not be interpreted', unknown_domain_boundary: 'Unknown domain boundary',

@@ -5,10 +5,21 @@ const vm = require('node:vm');
 function harness(overrides = {}) {
   const messages = [];
   const calls = [];
-  const widget = () => new Proxy({}, {
+  const widget = type => new Proxy({ type }, {
     get(target, key) {
       if (key === 'build') return () => target;
-      return (...args) => { calls.push([key, ...args]); return new Proxy(target, this); };
+      if (key === 'toJSON') return undefined;
+      if (key in target) return target[key];
+      return (...args) => {
+        calls.push([key, ...args]);
+        if (key === 'addWidget' || key === 'addSection') {
+          const field = key === 'addWidget' ? 'widgets' : 'sections';
+          (target[field] ||= []).push(args[0]);
+        } else if (typeof key === 'string' && key.startsWith('set')) {
+          target[key[3].toLowerCase() + key.slice(4)] = args[0];
+        }
+        return new Proxy(target, this);
+      };
     }
   });
   const context = vm.createContext({
@@ -30,7 +41,8 @@ function harness(overrides = {}) {
         };
       }
     },
-    CardService: new Proxy({}, { get: () => widget }),
+    CardService: new Proxy({}, { get: (_, name) => name === 'TextButtonStyle' ?
+      { FILLED: 'FILLED', TEXT: 'TEXT' } : () => widget(name) }),
     UrlFetchApp: { fetch: () => { throw new Error('unexpected_network_call'); } },
     ...overrides
   });

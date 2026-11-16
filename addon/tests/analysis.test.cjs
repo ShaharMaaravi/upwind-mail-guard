@@ -180,7 +180,7 @@ test('same-subject results identify their own bounded, escaped message preview',
   p.message.plain_text = 'First message <b>literal</b>\n' + '🔒'.repeat(200);
   context.analysisCard(response(context, p), p);
   let display = calls.filter(c => c[0] === 'setText').map(c => c[1]);
-  const preview = display.find(t => t.startsWith('Analyzed text:'));
+  const preview = display.find(t => t.includes('Analyzed text:'));
   assert.ok(preview.includes('&lt;b&gt;literal&lt;/b&gt;'));
   assert.ok(preview.endsWith('…') && !preview.includes('\n') && !preview.includes('\ufffd'));
   assert.ok(!preview.includes('🔒'.repeat(121)));
@@ -242,3 +242,49 @@ test('analysis client rejects byte-oversized responses before parsing', () => {
 });
 
 module.exports = { payload, response };
+
+test('compact card keeps score and action visible with full evidence and accounting expandable', () => {
+  const { context } = harness();
+  const card = context.analysisCard(suspicious(context), payload());
+  const visible = card.sections.flatMap(section => section.collapsible === true ?
+    section.widgets.slice(0, section.numUncollapsibleWidgets) : section.widgets);
+  const text = JSON.stringify(visible);
+  assert.ok(text.includes('Risk score: 40 / 100') && text.includes('Suspicious'));
+  assert.ok(text.includes('Pause.') && text.includes('Analyzed text:'));
+  assert.ok(text.includes('+40') && !text.includes('Requested 40; awarded 40'));
+  assert.ok(visible.length <= 7, 'Default view should stay compact');
+  const details = JSON.stringify(card.sections.find(s => s.header === 'Why this score'));
+  assert.ok(details.includes('&lt;script&gt;') && details.includes('&lt;a href='));
+  assert.ok(details.includes('Requested 40; awarded 40') && details.includes('Score calculation'));
+  assert.equal(card.fixedFooter.primaryButton.text, 'Analyze again');
+  assert.equal(card.fixedFooter.primaryButton.onClickAction.functionName, 'onAnalyzeEmail');
+});
+
+test('collapsing technical details never hides partial coverage or unavailable fields', () => {
+  const { context } = harness();
+  const p = payload(); p.attachments = null; p.truncated_fields = ['plain_text'];
+  const r = response(context, p);
+  r.coverage.issues = [{ field: 'plain_text', code: 'invalid_text' }];
+  r.checks_run = r.checks_run.filter(id => !id.startsWith('attachment.'));
+  r.checks_skipped = ['attachment.executable', 'attachment.double_extension'].map(rule_id =>
+    ({ rule_id, reason: 'missing_fields', fields: ['attachments'] }));
+  context.validateAnalysis(r, p);
+  const card = context.analysisCard(r, p);
+  const summary = JSON.stringify(card.sections[0]);
+  assert.notEqual(card.sections[0].collapsible, true);
+  for (const expected of ['Inconclusive', 'Partial analysis', '6 / 8 checks',
+    'Unavailable: Attachment metadata', 'Truncated: Plain text', '1 parsing or evidence limitations', '2 checks skipped']) {
+    assert.ok(summary.includes(expected), expected);
+  }
+  assert.ok(JSON.stringify(card).includes('Skipped checks:'));
+});
+
+test('unavailable card has no numeric score even when technical details are collapsed', () => {
+  const { context } = harness();
+  const p = payload(); const r = response(context, p);
+  r.analysis_status = 'unavailable'; r.score = null; r.verdict = 'analysis_unavailable';
+  r.scoring = null; r.checks_run = [];
+  const card = context.analysisCard(r, p);
+  assert.ok(JSON.stringify(card.sections[0]).includes('No score available.'));
+  assert.ok(!JSON.stringify(card).includes('Risk score:'));
+});

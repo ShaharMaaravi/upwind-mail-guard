@@ -197,12 +197,80 @@ claimed. Hosting, fresh checkout, and final demo packaging remain milestone 5. N
 screenshots were added to the repository, and no new external service was deployed.
 
 **Delivery:** the author approved committing and pushing milestone 4 on 2026-11-17.
-This record accompanies the approved commit; remote CI is checked after the push.
+Commit `fa63444` is on `main`; [remote CI passed](https://github.com/ShaharMaaravi/upwind-mail-guard/actions/runs/43971607094).
 
-## Upcoming
+## Milestone 5 — readable cards and reproducible submission
 
-1. Container verification and durable hosting decision.
-2. Final README/setup packaging, fresh-checkout rehearsal, and live demonstration rehearsal.
+**Implemented:** a compact native Gmail result with colored verdict, short action, coverage,
+subject/preview, and the three strongest reasons. Expandable sections retain full evidence,
+requested/awarded/capped point arithmetic, omitted findings, and check details. A fixed footer
+keeps Analyze available. Incomplete coverage, unavailable fields, truncation, and the low-score
+safety caveat remain visible. Rule labels are shorter; scoring and permissions are unchanged.
+
+Added a disposable-container verification script and CI container job. Updated README, Gmail
+installation, demo instructions, and a deployment guide for the local server/tunnel and Docker.
+
+**Automated verification (2026-11-17):** copied the complete proposed source into a clean directory
+without secrets/build output/caches and installed pinned dependencies into a new virtual environment.
+All **248 Python / 90 Node tests**, Ruff lint/format, and real local HTTP integration passed
+(Python 3.12.0, Node 25.2.1). The 20 corpus responses passed add-on validation/rendering over HTTP;
+Google services remain mocked in that check. Three new structural card tests check collapsed
+layout, retained evidence/accounting, always-visible coverage gaps, and no unavailable numeric score.
+
+Docker Desktop started via its CLI. Built and ran the existing Dockerfile as Linux ARM64 and AMD64
+(AMD64 emulated locally). The script verified UID 10001, read-only execution with dropped capabilities,
+256 MiB/0.5 CPU limits, excluded source/secrets, public health, unauthorized rejection, the 95-point
+fixture, all 20 corpus scores, absence of selected content/token log markers, and refusal to start
+without the secret. Temporary containers were removed. Observed memory after the fixture run was
+about 49 MiB ARM64 / 65 MiB AMD64; this is not a load test or cost estimate.
+
+**Live Gmail verification:** saved the redesigned source in the existing project, keeping the same
+origin, token, manifest, and OAuth permissions. The truncated reply showed **25 / suspicious / partial**
+with truncation visible; expanded sections retained evidence and check details. The suspicious
+message showed **75 / high risk**, top three of four reasons, and escaped literal markup. The original
+benign message showed **0 / low observed risk**, all eight checks, the correct Unicode preview, and
+no findings. The fixed Analyze footer worked; the benign result was left visible. Existing synthetic
+emails were reused, and no additional messages were sent. M4 failure/recovery checks remain valid:
+the backend and transport code are unchanged.
+
+**Hosting (2026-11-17):** deployed the unchanged backend/Dockerfile from `fa63444` to Northflank
+Developer Sandbox after approved signup, user-completed card verification, repository-only GitHub
+access, and approval for the demo secret/public endpoint/synthetic tests. One 0.1 CPU / 256 MB London
+instance, public HTTPS port 8080, `/healthz` readiness, no database/volume. The UI showed Free,
+Running, 1/1 checks passing, and no accrued costs. Northflank CI/CD builds/deploys main automatically.
+
+Verified hosted health, unauthorized 401, security headers, the 95-point fixture, all 20 corpus
+scores (slowest 0.44 s in the recorded run), malformed JSON 422, and oversized payload 413. An early
+server rejection closed the Python client's upload; curl with Expect: 100-continue observed 413.
+No TLS bypass or backend change was needed. An additional local AMD64 run at 0.1 CPU / 256 MB
+passed after increasing the smoke client's startup allowance from 10 to 60 seconds; memory was
+about 77 MiB. That experiment changed no committed script and is not a hosting latency guarantee.
+
+Updated the generated Apps Script source and manifest to the hosted origin, preserving scopes and
+Google Script Properties. With the local backend stopped, Gmail returned benign **0**, long reply
+**25 / partial** with truncation, and suspicious **75**, all with correct message previews/coverage.
+No new emails were sent. The obsolete tunnel was then stopped. Provider-visible application logs
+contained only seven platform/Uvicorn startup entries after tests. Earlier outage/wrong-token/timeout
+checks were local; no hosted outage or long-term uptime claim is made. See [deployment](deployment.md).
+
+**Billing notification follow-up (2026-11-17):** created a $0 team billing alert and verified it
+persisted after page reload. Account usage remained $0.00 on Developer Sandbox. This configures
+email notification for positive billable usage; it is not a hard cap or a guarantee that
+notification precedes charging. No paid upgrade/resource was added. The provider's $50 billing
+threshold triggers automatic invoicing/payment and is not a spending limit. See the deployment guide
+for source references and limitations.
+
+**Delivery:** the author approved committing and pushing milestone 5 on 2026-11-17.
+[Release checks](https://github.com/ShaharMaaravi/upwind-mail-guard/actions/workflows/ci.yml)
+include the Python/Node/integration suite and the new container job. Verify the run for the released
+revision, and confirm Northflank deploys that revision successfully. No private screenshots or mail,
+credentials, temporary tunnel origin, or original assignment PDF are included in source.
+
+## Release and demonstration checklist
+
+1. For the approved release, verify both GitHub CI jobs and Northflank deployment at the pushed revision.
+2. Before the interview, check hosted health and rehearse the existing synthetic messages; no laptop server/tunnel is required.
+3. Submit the repository link through the author's chosen channel; sending it is a separate action.
 
 Detailed explanations and interview practice are deferred until after implementation at the
 author's request. Decisions are recorded as we build so they can be reviewed later.

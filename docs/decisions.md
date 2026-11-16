@@ -165,8 +165,8 @@ Escape every untrusted subject/evidence/explanation string; do not create link a
 Each analysis reads the current action event, and message-context changes create a fresh start card.
 **Alternative:** render every finding, paginate through persistent state, or hide capped findings.
 **Cost:** some evidence requires backend inspection; the compact Gmail card avoids hundreds of
-widgets and still explains the full score. Live tests cover literal HTML-like text and switching
-between two distinct messages; selection within one multi-message thread remains unverified.
+widgets and still explains the full score. Subsequent live tests cover literal HTML-like text,
+switching between distinct messages, and selection within one multi-message thread (milestone 4).
 
 
 ## 018 — Keep unexpected failures out of content-bearing logs
@@ -187,3 +187,33 @@ field or Google permission is needed. Empty and unavailable previews are distinc
 **Alternative:** read every message in a thread or assume sending a reply selects it. The live test
 showed that Gmail can preserve the original context after a reply is sent. **Cost:** one extra card
 paragraph and explicit selection by the user; the preview makes same-subject results distinguishable.
+
+## 020 — Put the result first and expand the evidence on demand
+
+**Chosen:** native CardService collapsible sections and a fixed Analyze footer. Show verdict,
+recommended action, coverage gaps, message preview, and the three strongest reasons initially.
+Retain all previously shown evidence, cap arithmetic, and omitted-point accounting under **Why
+this score**; detailed checks and caveats live under **Checks and limitations**. Partial status,
+missing/truncated fields, and a low-score safety caveat remain visible.
+**Alternative:** a long flat card exposes everything but makes the main result difficult to scan;
+custom pagination adds callbacks and retained message state. **Cost:** one expansion to inspect
+the full explanation. Native layout and expansion labels follow Gmail's locale. Structural tests
+verify that collapse cannot hide coverage gaps, and live Gmail checks exercised expansion and the footer.
+References: [CardSection](https://developers.google.com/apps-script/reference/card-service/card-section),
+[FixedFooter](https://developers.google.com/apps-script/reference/card-service/fixed-footer).
+
+## 021 — Host the portable container on a free always-on service
+
+**Chosen:** Northflank Developer Sandbox, one 0.1 CPU / 256 MB instance, public HTTPS port 8080,
+`/healthz` readiness, and a runtime secret. The existing non-root Dockerfile runs unchanged.
+Gmail passed 0/25/75 with the local backend stopped. Preserve local/tunnel instructions for development
+and the ARM64/AMD64 container smoke check for reproducibility. **Alternative:** a local tunnel meets
+backend separation but depends on the laptop; the author requires hosted delivery. Railway's Free
+plan rejected another project, and an idle-sleeping free instance can exceed Gmail's deadline.
+A paid host/VPS could provide larger resources and stronger availability at added cost/operations.
+**Cost:** provider account, user-completed card verification, separate secret storage, small resource
+limits, and dependence on free-tier availability. No paid upgrade was selected. Readiness handles
+startup; it does not guarantee response deadlines. Keep one instance for the in-memory limiter.
+Northflank builds/deploys `main` automatically, independently of GitHub CI, so releases still need
+local checks, explicit commit approval, and verification of both remote systems.
+See [deployment configuration and evidence](deployment.md).

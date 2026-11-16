@@ -1,13 +1,13 @@
 # Upwind Mail Guard
 
-A Gmail add-on with a separate Python backend, being built for the Upwind Security Analyst assignment.
+A Gmail add-on with a separate Python backend for the Upwind Security Analyst assignment.
 
-**Current status: milestone 4 security review and live edge checks complete.**
+**Implemented and demonstrated in Gmail.**
 Open an email and choose **Analyze this email** to see an explainable 0–100 heuristic score,
 verdict, evidence, point contributions, and coverage for eight deterministic checks. Benign and
 suspicious synthetic emails, message switching, and backend outage/recovery passed in Gmail.
-Final submission packaging remains. The score is not a calibrated probability or
-a guarantee of safety.
+The backend is hosted on Northflank Developer Sandbox; Gmail was verified with the local backend stopped.
+The score is not a calibrated probability or a guarantee of safety.
 
 ## What works now
 
@@ -17,6 +17,9 @@ a guarantee of safety.
 - Strictly validated analysis responses, escaped evidence, exact score accounting, and clear
   complete/partial/unavailable states. Missing data never becomes a safe verdict.
 - A bounded analyzed-text preview distinguishes messages with the same subject.
+- A compact result card puts the verdict, action, coverage, and top three reasons first.
+  Expand **Why this score** for evidence and point calculations, or **Checks and limitations**
+  for technical details. Missing inputs and truncation remain visible when sections are collapsed.
 - Automated backend, add-on, build, and local HTTP integration tests.
 - Strict analysis input/output models, address/HTML/URL normalization, and offline domain boundaries.
 - Pure scoring with stable findings, deduplication, category caps, and exact contribution accounting.
@@ -24,14 +27,20 @@ a guarantee of safety.
   payment requests with pressure, and executable/double-extension attachment filenames.
 - Explicit completed/skipped checks; missing or truncated coverage cannot produce a complete result.
 
-In a personal Gmail account through a temporary HTTPS tunnel, the benign fixture scored **0**
-(low observed risk) and the suspicious fixture **75** (high risk), both with all eight checks run.
-Unavailable metadata produced an explicitly partial result before Gmail API was enabled.
-A 20,068-character reply scored **25**, with explicit body truncation. Same-thread selection,
-backend authentication failure, Google execution timeout, and recovery were also observed.
-See the [verification record](docs/live-verification.md) and [security review](docs/security-review.md).
-Durable hosting is not configured. The container definition is included but has not been built
-locally because Docker's daemon was unavailable.
+The hosted backend is available at [https://p01--upwind-mail-guard--vpdljyyj7txr.code.run](https://p01--upwind-mail-guard--vpdljyyj7txr.code.run/healthz).
+`GET /healthz` is public; analysis requires the private demo token. The repository contains no token.
+In Gmail, the existing synthetic messages scored **0** (benign), **75** (suspicious), and **25**
+(a 20,068-character reply with visible truncation). These checks passed against Northflank with
+the local backend stopped. The old tunnel has also been stopped; the demo no longer depends on
+this laptop. The selected-message scopes and Google-only token handling are unchanged.
+
+The service uses one free 0.1 CPU / 256 MB instance in London. Northflank showed **Free**, a passing
+readiness check, and no accrued costs when verified on 2026-11-17. This is a demonstration deployment,
+not an uptime guarantee. See [backend deployment](docs/deployment.md), the
+[demo walkthrough](docs/demo.md), and the [verification record](docs/live-verification.md).
+Earlier local live checks also covered metadata enablement, escaped text, selection within a thread,
+backend authentication failure, Google's execution timeout, and recovery. See the
+[security review](docs/security-review.md). Linux ARM64 and AMD64 containers were built and tested.
 
 ## Quick start
 
@@ -42,8 +51,8 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r backend/requirements-dev.txt
 pytest -q
-ruff check backend
-ruff format --check backend
+ruff check backend scripts/container-smoke.py
+ruff format --check backend scripts/container-smoke.py
 npm test
 npm run test:integration
 ```
@@ -75,6 +84,7 @@ or has an invalid format. The token must be generated randomly; a valid length a
 
 For Google setup, an HTTPS backend, and the exact files to upload, follow
 [Gmail installation](docs/gmail-setup.md). A public Git repository does not install the add-on in Gmail.
+For the container command and startup checklist, see [backend deployment](docs/deployment.md).
 
 ## Architecture
 
@@ -109,7 +119,7 @@ flowchart LR
 | `backend/app/scoring.py` | Provisional weights, deduplication, caps, and contribution accounting |
 | `backend/app/analysis.py` | Normalize → detect → score; determine coverage and verdict |
 | `backend/app/main.py` | Health, diagnostic, and analysis routes |
-| `scripts/` | Reproducible add-on build and local integration check |
+| `scripts/` | Reproducible add-on build, HTTP integration, and container verification |
 
 `POST /v1/diagnose` takes a schema version, random request reference, bounded message fields,
 and truncation flags. See [the synthetic request](fixtures/diagnostic-request.json).
@@ -179,14 +189,18 @@ strict input types, redacted errors, Unicode, partial extraction, forged authent
 backend redirects/errors, response correlation, escaped card text, and deployment URL validation.
 It also covers PSL wildcard/exception/private boundaries, Unicode domains, deceptive user-info,
 IPv4/IPv6 URLs, inert HTML, bounded repeated links, score reconciliation, and unavailable analysis.
-Milestone 4 passed 248 Python tests, 87 Node tests, lint/format checks, and real local HTTP integration.
+A clean source copy and new virtual environment passed **248 Python tests and 90 Node tests**,
+lint/format checks, and real local HTTP integration. The container smoke check also passed on
+Linux ARM64 and AMD64, including read-only/non-root execution and missing-secret startup failure.
 A dated dependency audit found no known vulnerabilities in the 21 runtime and nine development
 packages; this is not a guarantee of vulnerability-free dependencies.
 The HTTP check runs the actual add-on analysis action and validates/renders all 20 corpus responses;
 Google services are mocked there. Separate live Gmail checks are recorded in the verification record.
 The 20-case detection corpus includes benign, suspicious, incomplete, and known false-positive cases;
 matching their expected behavior is not a production accuracy estimate.
-CI targets Python 3.12 / Node 22. Milestones 0–3 passed remote CI; milestone 4 awaits commit approval.
+CI targets Python 3.12 / Node 22 and also builds/runs the container smoke check.
+See [GitHub Actions](https://github.com/ShaharMaaravi/upwind-mail-guard/actions/workflows/ci.yml)
+for the checks on each released revision.
 
 Read [progress](docs/progress.md) for executed checks and outstanding gates,
 [decisions](docs/decisions.md) for tradeoffs, and the [implementation plan](docs/implementation-plan.md)

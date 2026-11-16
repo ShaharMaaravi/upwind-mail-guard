@@ -5,26 +5,23 @@ Complete the local README checks first. Use your own demonstration account and s
 
 ## 1. Make the backend reachable over HTTPS
 
-Run the local service using the README. Apps Script runs on Google's servers and cannot reach
-your laptop's `localhost` directly.
+The submitted demo uses the hosted Northflank backend at **https://p01--upwind-mail-guard--vpdljyyj7txr.code.run**.
+See [backend deployment](deployment.md) for the exact configuration and verification. It works
+without the development laptop. Analysis remains authenticated; the repository does not expose
+the demo token. To install your own copy, deploy the included Dockerfile with your own random
+`MAIL_GUARD_API_TOKEN`, port 8080, one instance, and `/healthz` readiness check.
 
-For development, a temporary HTTPS tunnel avoids choosing a hosting provider.
-If you already have Cloudflare's `cloudflared` installed, run in a second terminal:
+For local development, run the README service and a temporary HTTPS tunnel:
 
 ```bash
 cloudflared tunnel --url http://127.0.0.1:8000
 ```
 
-Use the exact HTTPS origin printed by the tunnel. Obtain cloudflared only from
-[Cloudflare's installation instructions](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/).
-The tunnel exposes this development server through Cloudflare; authentication remains required
-for message requests. Keep both processes running. The URL can change when restarted.
-The tunnel is a development option, not a verified final-demo hosting arrangement.
-
-Alternatively, deploy the included Dockerfile to an HTTPS container host, listen on port 8080,
-set `MAIL_GUARD_API_TOKEN` in its secret environment, and use one instance for the initial demo.
-Do not add email bodies or authorization headers to hosting logs. Choose hosting and any cost
-explicitly; the verified development deployment currently uses a local server and tunnel.
+Apps Script cannot reach your laptop's `localhost` directly. Install cloudflared from
+[Cloudflare's official instructions](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/).
+Use the exact printed HTTPS origin, keep both processes running, and rebuild/upload when the
+origin changes. This is a fallback; the submitted hosted deployment does not use the tunnel.
+Do not enable email-body or Authorization-header logging on either deployment.
 
 ## 2. Build the add-on
 
@@ -78,8 +75,10 @@ Manual upload above avoids this additional tooling for the first test.
    intended add-on. Workspace administrators may restrict testing or authorization.
 5. Open a synthetic email and click **Analyze this email**.
 
-Expected result: a score/verdict, selected subject, evidence and point contributions, coverage,
-recommended action, analyzed-text preview, and a random analysis reference. In a conversation,
+Expected result: a compact score/verdict, recommended action, coverage, selected subject, preview,
+and strongest reasons. Expand **Why this score** for evidence and contribution arithmetic;
+expand **Checks and limitations** for all check details and the random analysis reference.
+The **Analyze again** button stays in the footer. In a conversation,
 expand the intended message header and check that preview, especially after sending a reply.
 A benign message can score zero but must not be labeled safe. Missing metadata should show partial coverage and skipped attachment checks.
 If metadata stays unavailable, check that Gmail API v1 is enabled and the manifest has the exact
@@ -97,7 +96,7 @@ Google's current guides:
 Follow [the demo script](demo.md) and [live verification](live-verification.md). Record actual results in progress.md.
 Do not call the integration complete just because local tests pass.
 
-If configuration fails, check the token match, backend health, current tunnel URL, rebuilt source,
+If configuration fails, check the token match, backend health, current backend URL, rebuilt source,
 manifest allowlist, and Google authorization. A Google execution timeout can prevent our own
 failure card from rendering; observe and record the platform's actual behavior.
 

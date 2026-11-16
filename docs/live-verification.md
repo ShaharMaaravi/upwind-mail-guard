@@ -3,8 +3,9 @@
 **Core integration passed on 2026-11-16; analysis product passed on 2026-11-16–17; security/edge checks passed on 2026-11-17.** This record distinguishes observed Gmail behavior
 from automated coverage and broader cases still pending before final submission.
 
-Environment: personal Gmail account, unpublished Apps Script test deployment, local FastAPI
-backend behind a temporary Cloudflare HTTPS tunnel. Scope:
+Earlier environment (milestones 0–4): personal Gmail account, unpublished Apps Script test deployment,
+local FastAPI backend behind a temporary Cloudflare HTTPS tunnel. Milestone 5 moved the backend
+to Northflank and repeated the successful Gmail checks with the local backend stopped. Scope:
 `https://www.googleapis.com/auth/gmail.addons.current.message.action`.
 No broad mailbox scope was added. The author explicitly approved authorization, storing the demo
 token in Script Properties, and sending one synthetic email to the same account.
@@ -60,7 +61,7 @@ successful retrieval of the named metadata record.
 - [x] Backend/tunnel logs contained neither the demo API token nor tested synthetic subject/body
       snippets. No email content logging was enabled, and no real email content was sent to the backend.
 
-The local backend and temporary HTTPS tunnel remain running for development. Local tests passed
+At that milestone, the local backend and temporary HTTPS tunnel remained running. Local tests passed
 243 Python / 84 Node cases plus HTTP integration; milestones 0–2 passed remote CI. These checks do
 not establish production detection accuracy or final deployment readiness.
 
@@ -92,11 +93,45 @@ is 30 seconds. This experiment verifies the platform error for this deployment, 
 client timeout or successful handling of every cold start. Return to the message list and reopen the
 message after the backend recovers. A 20 KiB fixture does not establish arbitrary message-size safety.
 
-## Submission gates still pending
+## Milestone 5: compact cards and submission rehearsal
 
-- [ ] Build/run the container; the local Docker daemon socket is unavailable.
-- [ ] Decide the final hosting arrangement and document its startup/cold-start behavior.
-- [ ] Milestone 4 remote CI after approved commit/push.
-- [ ] Fresh-checkout reviewer setup and final demonstration rehearsal.
+- [x] Uploaded/saved the revised card code in the same Apps Script project, without changing
+      permissions, manifest, backend token, or HTTPS origin. Existing synthetic messages were reused.
+- [x] Long reply: **25 / suspicious / partial** with truncation visible while details are collapsed.
+      Expanded **Why this score** and **Checks and limitations** retained evidence, accounting, and limits.
+- [x] Suspicious message: **75 / high risk**, three leading reasons and an explicit four-finding
+      count, literal HTML-like subject escaped, and fixed **Analyze again** footer. The final shorter
+      credential label was saved and verified by a fresh analysis.
+- [x] Original benign message: **0 / low observed risk**, all eight checks, Unicode preview,
+      no findings, compact limitations section, and footer. Visually inspected and left visible.
+- [x] Built and exercised Linux ARM64/AMD64 containers, including authenticated fixtures, missing
+      secret, non-root/read-only execution, bounded resources, and selected log-marker checks.
+      AMD64 ran through local Docker emulation; remote container CI remains a separate delivery gate.
+- [x] Rehearsed reviewer setup from a clean source copy and new virtual environment: pinned install,
+      248 Python / 90 Node tests, lint/format, and real HTTP integration passed.
+- [x] Deployed Northflank Developer Sandbox after the author's explicit approvals. The service is
+      labeled Free; billing showed no accrued costs. One 0.1 CPU / 256 MB instance in London,
+      port 8080, passing `/healthz` readiness, no storage or database.
+- [x] Hosted HTTPS: health, unauthorized 401, security headers, fixture 95, all 20 corpus scores,
+      malformed JSON 422, oversized payload 413. Slowest corpus response: 0.44 s in the recorded run.
+      Expect: 100-continue exposed the early 413 after the original upload client reported TLS EOF.
+- [x] Updated and saved both Apps Script source and manifest for the hosted origin; scopes and
+      Google Script Properties unchanged. Reused existing synthetic messages with approval.
+- [x] Stopped the local backend, then verified Gmail **0 / complete**, **25 / partial** with body
+      truncation, and **75 / complete**. Correct previews, escaped text, and top-three reasons.
+      The suspicious 75 result was left visible. No new email was sent.
+- [x] Stopped the obsolete tunnel after hosted verification. Neither local process is required.
+- [x] Inspected hosted application logs after tests: only seven platform/Uvicorn startup lines
+      were visible, without request content or credential entries. Provider retention beyond this
+      view was not audited. Earlier local failure tests were not repeated as hosted outages.
+- [x] Milestone 4 remote CI passed after approved commit/push (`fa63444`).
+
+## Release and demonstration checks
+
+- [x] Author approved milestone 5 commit/push on 2026-11-17.
+- For every release, check [GitHub Actions](https://github.com/ShaharMaaravi/upwind-mail-guard/actions/workflows/ci.yml)
+  at the released revision, including the container job, and verify the matching Northflank deployment.
+- [ ] Immediately before the interview, confirm hosted health and analyze a synthetic Gmail message.
+      No local server/tunnel is required; earlier rehearsal does not guarantee future availability.
 
 Do not commit personal email bodies, addresses, credentials, or private screenshots as evidence.
