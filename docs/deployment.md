@@ -73,7 +73,7 @@ rate limits and multi-user authorization.
 
 ## Local development and fallback
 
-1. Follow the root [README](../README.md#quick-start) to install dependencies, generate the
+1. Follow the root [README](../README.md#2-reproduce-and-test-locally-optional) to install dependencies, generate the
    ignored `.env`, and run the backend on `127.0.0.1:8000`.
 2. In a second terminal, run `cloudflared tunnel --url http://127.0.0.1:8000`.
 3. Check the public `/healthz`, then build and install the add-on for the exact printed HTTPS
