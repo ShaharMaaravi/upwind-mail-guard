@@ -1,0 +1,12 @@
+{
+  "name": "upwind-mail-guard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gmail add-on integration scaffold and tests",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test addon/tests/*.test.cjs",
+    "build:addon": "node scripts/build-addon.mjs",
+    "test:integration": "node scripts/smoke.cjs"
+  }
+}

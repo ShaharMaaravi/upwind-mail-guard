@@ -1,0 +1,13 @@
+{
+  "schema_version": "1",
+  "request_id": "00000000-0000-4000-8000-000000000001",
+  "message": {
+    "from_address": "Synthetic Sender <sender@example.test>",
+    "reply_to": "",
+    "subject": "Mail Guard integration test",
+    "plain_text": "Synthetic message only. Hello 🔒 שלום.",
+    "html": "<p>Synthetic message only.</p>",
+    "authentication_results": null
+  },
+  "truncated_fields": []
+}

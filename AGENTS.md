@@ -8,9 +8,11 @@ Read README.md first. It contains the assignment requirements and proposed archi
 
 ## Current handoff
 
-At the initial handoff on 2026-11-16, only the planning README and these instructions have been committed. There is no implementation, running backend, Gmail deployment, or executed test suite.
+Milestone 0 now has a diagnostic backend, Apps Script adapter, local automated tests, and installation instructions. Read docs/progress.md for actual verification and commit status. The original design is preserved in docs/implementation-plan.md. No detector or score is implemented. The core Gmail/HTTPS flow, outage, and recovery have been live-verified; broader live cases remain recorded in docs/live-verification.md.
 
-Next step: begin milestone 0, proving an installed Gmail add-on can call an authenticated HTTPS backend. First add appropriate ignore rules and example-only configuration, inspect available Python/Node tooling, then create the smallest integration scaffold. Establish actual Gmail scope and field availability before committing to extraction details. Do not silently mark a simulated API test as a successful Gmail integration.
+Next step: proceed to the analysis foundation after the approved milestone 0 commit and push. Current-message action scope supports the implemented getters in the live test. Preserve the outstanding thread-selection, large-message, and metadata-only attachment checks in docs/live-verification.md. Do not silently mark a simulated API test as successful live verification.
+
+The author is working toward a next-day submission and asked to implement and test each milestone first, with detailed learning afterward. Record decisions without lengthy teaching interruptions. Obtain the author's explicit approval before each milestone commit; do not commit or push automatically.
 
 The assignment PDF was read in full during planning. Its essential requirements are in the README. Do not publish the original private PDF or personal email content.
 
