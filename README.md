@@ -9,6 +9,15 @@ The solution is implemented, hosted on Northflank, and demonstrated in a real Gm
 **A low score does not establish safety, and the score is not a probability.** Missing information,
 truncation, and backend failures are shown explicitly.
 
+## Quick-start video
+
+[**Watch the 61-second Gmail walkthrough (MP4)**](docs/assets/quick-start.mp4)
+
+A captioned recording of the installed add-on: analyze a selected email, read the score, expand
+supporting evidence and coverage details, then compare a benign message. It uses synthetic emails
+and the hosted backend. The recording is cropped and edited for privacy and readability; no audio
+is required. For installation, follow [the setup instructions below](#3-install-your-own-gmail-add-on).
+
 ## Start here
 
 | Reviewer goal | What to do | Access required |
